@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__supabase__list_projects",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration",
+      "Bash(Remove-Item \"D:\\\\Works\\\\Project\\\\pickter-web\\\\app\\\\search\\\\page.tsx\" -Force)",
+      "Bash(Remove-Item \"D:\\\\Works\\\\Project\\\\pickter-web\\\\app\\\\search\\\\SearchInput.tsx\" -Force)",
+      "Bash(Remove-Item \"D:\\\\Works\\\\Project\\\\pickter-web\\\\app\\\\search\" -Force -ErrorAction SilentlyContinue)",
+      "Bash(Remove-Item \"D:\\\\Works\\\\Project\\\\pickter-web\\\\components\\\\layout\\\\GNBSearchBar.tsx\" -Force)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\shein\\\\Downloads\\\\poly-market-to-pickter\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(findstr lucide *)",
+      "Bash(Get-Content \"C:\\\\Users\\\\shein\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Works-Project-pickter-web\\\\6e88acbc-c1fb-47ad-a96b-b1baee1158ec\\\\tasks\\\\bsbwdaql3.output\" -Wait)",
+      "Bash(Select-String -Pattern \"ready|error|warn|localhost|compiled|Failed\" --SimpleMatch)",
+      "Bash(Remove-Item \"D:\\\\Works\\\\Project\\\\pickter-web\\\\components\\\\layout\\\\TabBar.tsx\" -ErrorAction SilentlyContinue)"
+    ]
+  }
+}
