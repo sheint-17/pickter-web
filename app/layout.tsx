@@ -22,16 +22,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthModalProvider>
           <GNB />
           <div style={{
-            position: 'fixed', top: '72px', left: 0, right: 0,
+            position: 'fixed', top: '60px', left: 0, right: 0,
             zIndex: 90, background: 'white', borderBottom: '1px solid #F0F0F0',
           }}>
-            <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 24px' }}>
+            <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 16px' }}>
               <CategoryBar />
             </div>
           </div>
           <main style={{
-            width: '100%', paddingTop: '120px', paddingBottom: '24px',
-            minHeight: '100vh', boxSizing: 'border-box',
+            width: '100%',
+            paddingTop: '108px', /* GNB 60px + CategoryBar 48px */
+            paddingBottom: '40px',
+            minHeight: '100vh',
+            boxSizing: 'border-box',
           }}>
             {children}
           </main>

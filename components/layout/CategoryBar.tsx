@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Trophy, CalendarCheck, Swords, LogOut } from 'lucide-react'
 
@@ -14,24 +14,15 @@ const categories = [
   { id: 'entertainment', label: '엔터' },
   { id: 'sports', label: '스포츠' },
   { id: 'tech', label: 'IT' },
-  { id: 'society', label: '사회' },
+  { id: 'social', label: '사회' },
   { id: 'other', label: '기타' },
 ]
 
 const menuItems = [
-  { icon: Trophy,       label: '랭킹',   href: '/ranking' },
-  { icon: CalendarCheck, label: '출석',   href: '/attendance' },
-  { icon: Swords,       label: 'AI 대결', href: '/ai-challenge' },
+  { icon: Trophy,        label: '랭킹',    href: '/ranking' },
+  { icon: CalendarCheck, label: '출석',    href: '/attendance' },
+  { icon: Swords,        label: 'AI 대결', href: '/ai-challenge' },
 ]
-
-const pillStyle = {
-  padding: '6px 14px', borderRadius: '999px',
-  fontSize: '13px', fontWeight: 500,
-  whiteSpace: 'nowrap' as const, cursor: 'pointer',
-  background: 'transparent', border: '1px solid #E5E7EB',
-  color: '#555', textDecoration: 'none', display: 'inline-flex',
-  alignItems: 'center', gap: '5px',
-}
 
 export default function CategoryBar() {
   const [open, setOpen] = useState(false)
@@ -39,6 +30,9 @@ export default function CategoryBar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const activeCategory = searchParams.get('category') ?? 'hot'
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -69,6 +63,41 @@ export default function CategoryBar() {
     router.refresh()
   }
 
+  const handleCategoryClick = (id: string) => {
+    // 홈이 아닌 페이지에서 클릭하면 홈으로 이동
+    if (pathname !== '/') {
+      router.push(`/?category=${id}`)
+    } else {
+      router.push(`/?category=${id}`, { scroll: false })
+    }
+  }
+
+  const pillStyle = (isActive: boolean) => ({
+    padding: '6px 14px',
+    borderRadius: '999px',
+    fontSize: '13px',
+    fontWeight: isActive ? 700 : 500,
+    whiteSpace: 'nowrap' as const,
+    cursor: 'pointer',
+    background: isActive ? '#171717' : 'transparent',
+    border: `1px solid ${isActive ? '#171717' : '#E5E7EB'}`,
+    color: isActive ? '#fff' : '#555',
+    textDecoration: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    transition: 'all 0.15s ease',
+  })
+
+  const menuPillStyle = {
+    padding: '6px 14px', borderRadius: '999px',
+    fontSize: '13px', fontWeight: 500,
+    whiteSpace: 'nowrap' as const, cursor: 'pointer',
+    background: 'transparent', border: '1px solid #E5E7EB',
+    color: '#555', textDecoration: 'none', display: 'inline-flex',
+    alignItems: 'center', gap: '5px',
+  }
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', height: '48px', gap: '8px' }}>
 
@@ -78,7 +107,13 @@ export default function CategoryBar() {
         flex: 1, overflowX: 'auto', scrollbarWidth: 'none',
       }}>
         {categories.map(cat => (
-          <button key={cat.id} style={pillStyle}>{cat.label}</button>
+          <button
+            key={cat.id}
+            onClick={() => handleCategoryClick(cat.id)}
+            style={pillStyle(activeCategory === cat.id)}
+          >
+            {cat.label}
+          </button>
         ))}
       </div>
 
@@ -88,7 +123,7 @@ export default function CategoryBar() {
           <div style={{ width: '1px', height: '20px', background: '#E5E7EB', flexShrink: 0 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {menuItems.map(({ icon: Icon, label, href }) => (
-              <Link key={href} href={href} style={{ ...pillStyle, textDecoration: 'none' }}>
+              <Link key={href} href={href} style={{ ...menuPillStyle, textDecoration: 'none' }}>
                 <Icon size={14} strokeWidth={2} />
                 {label}
               </Link>
@@ -96,7 +131,7 @@ export default function CategoryBar() {
             {isLoggedIn && (
               <button
                 onClick={handleLogout}
-                style={{ ...pillStyle, color: '#EF4444', borderColor: '#FECACA' }}
+                style={{ ...menuPillStyle, color: '#EF4444', borderColor: '#FECACA' }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#FEF2F2')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
@@ -111,7 +146,7 @@ export default function CategoryBar() {
       {/* 좁은 화면: 더보기 드롭다운 */}
       {isMobile && (
         <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
-          <button onClick={() => setOpen(p => !p)} style={pillStyle}>
+          <button onClick={() => setOpen(p => !p)} style={menuPillStyle}>
             더보기 {open ? '▲' : '▼'}
           </button>
           {open && (

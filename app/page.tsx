@@ -4,7 +4,14 @@ import { cookies } from 'next/headers'
 import { Issue } from '@/types'
 import HomeClient from './HomeClient'
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>
+}) {
+  const { category } = await searchParams
+  const activeCategory = category ?? 'hot'
+
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,14 +28,39 @@ export default async function Home() {
     }
   )
 
-  // 1. 진행 중인 이슈 전체
-  const { data: issues } = await supabase
+  // DB 카테고리 ID 매핑 (CategoryBar id → DB enum)
+  const categoryMap: Record<string, string> = {
+    politics: 'politics',
+    economy: 'economy',
+    entertainment: 'entertainment',
+    sports: 'sports',
+    tech: 'tech',
+    social: 'social',
+    other: 'other',
+  }
+
+  // 이슈 쿼리 — hot/all은 필터 없음, 나머지는 category 필터
+  let issueQuery = supabase
     .from('issues')
     .select('*, issue_options!issue_options_issue_id_fkey(*)')
     .eq('status', 'active')
-    .order('created_at', { ascending: false })
 
-  // 2. 급상승 이슈: total_volume 상위 3개
+  if (activeCategory === 'hot') {
+    // 인기: participant_count 내림차순
+    issueQuery = issueQuery.order('participant_count', { ascending: false })
+  } else if (activeCategory === 'all') {
+    issueQuery = issueQuery.order('created_at', { ascending: false })
+  } else if (categoryMap[activeCategory]) {
+    issueQuery = issueQuery
+      .eq('category', categoryMap[activeCategory])
+      .order('created_at', { ascending: false })
+  } else {
+    issueQuery = issueQuery.order('created_at', { ascending: false })
+  }
+
+  const { data: issues } = await issueQuery
+
+  // 급상승 이슈: total_volume 상위 3개
   const { data: trendingRaw } = await supabase
     .from('issues')
     .select('id, title, total_volume, issue_options!issue_options_issue_id_fkey(option_type, price)')
@@ -47,7 +79,7 @@ export default async function Home() {
     }
   })
 
-  // 3. TOP 3 랭킹
+  // TOP 3 랭킹
   const { data: topRankers } = await supabase
     .from('users')
     .select('id, nickname, tier, rp_total')
@@ -59,6 +91,7 @@ export default async function Home() {
       issues={(issues as Issue[]) ?? []}
       trendingIssues={trendingIssues}
       topRankers={(topRankers ?? []) as { id: string; nickname: string; tier: string; rp_total: number }[]}
+      activeCategory={activeCategory}
     />
   )
 }
