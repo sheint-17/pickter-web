@@ -10,6 +10,14 @@ export function FloatingProposeButton() {
   const [expanded, setExpanded] = useState(false)
   const [tier, setTier] = useState<string | null>(null)
   const [showToast, setShowToast] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -18,6 +26,9 @@ export function FloatingProposeButton() {
         .then(({ data }) => { if (data) setTier(data.tier) })
     })
   }, [])
+
+  // 모바일에서는 렌더링 안 함
+  if (isMobile) return null
 
   const canPropose = tier !== null && TIER_ORDER.indexOf(tier) >= TIER_ORDER.indexOf('Silver')
 
