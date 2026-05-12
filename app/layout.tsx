@@ -1,5 +1,6 @@
 // app/layout.tsx
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import './globals.css'
 import GNB from '@/components/layout/GNB'
 import CategoryBar from '@/components/layout/CategoryBar'
@@ -26,12 +27,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             zIndex: 90, background: 'white', borderBottom: '1px solid #F0F0F0',
           }}>
             <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 16px' }}>
-              <CategoryBar />
+              {/* useSearchParams() 사용으로 Suspense 필수 */}
+              <Suspense fallback={<div style={{ height: '48px' }} />}>
+                <CategoryBar />
+              </Suspense>
             </div>
           </div>
           <main style={{
             width: '100%',
-            paddingTop: '108px', /* GNB 60px + CategoryBar 48px */
+            paddingTop: '108px',
             paddingBottom: '40px',
             minHeight: '100vh',
             boxSizing: 'border-box',
