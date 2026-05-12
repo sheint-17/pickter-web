@@ -8,6 +8,12 @@ import BackButton from '@/components/layout/BackButton'
 import TradePanel from '@/components/issue/TradePanel'
 import PriceChart from '@/components/issue/PriceChart'
 import CommunityTabs from '@/components/issue/CommunityTabs'
+import { ShareButton } from '@/components/issue/ShareButton'
+
+const CATEGORY_KO: Record<string, string> = {
+  politics: '정치', economy: '경제', entertainment: '엔터',
+  sports: '스포츠', tech: 'IT', social: '사회', other: '기타',
+}
 
 export default async function IssueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -58,13 +64,11 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
   const journals = (rawJournals ?? []).map(j => ({ ...j, like_count: likeCounts[j.id] ?? 0, liked_by_me: userLikedSet.has(j.id) }))
   const hasExistingJournal = journals.some(j => j.user_id === user?.id)
 
-  // 선택지 정렬
   const sortedOptions = [...(issue.issue_options ?? [])].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)) as IssueOption[]
   const isBinary = issue.issue_type !== 'multi'
   const yesOption = sortedOptions.find(o => o.option_type === 'yes')
   const noOption  = sortedOptions.find(o => o.option_type === 'no')
 
-  // CommunityTabs용: binary면 yes/no, multi면 1번/2번 선택지
   const communityYesOpt = isBinary
     ? (yesOption ? { id: yesOption.id, label: yesOption.label, option_type: 'yes' } : null)
     : (sortedOptions[0] ? { id: sortedOptions[0].id, label: sortedOptions[0].label, option_type: '1' } : null)
@@ -72,7 +76,6 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
     ? (noOption ? { id: noOption.id, label: noOption.label, option_type: 'no' } : null)
     : (sortedOptions[1] ? { id: sortedOptions[1].id, label: sortedOptions[1].label, option_type: '2' } : null)
 
-  // 현재 포지션 (binary만 의미있음)
   const currentPosition: 'yes' | 'no' | 'none' = (() => {
     if (!tickets || !yesOption || !noOption) return 'none'
     if (tickets.some(t => t.option_id === yesOption.id && t.quantity > 0)) return 'yes'
@@ -91,6 +94,11 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
     politics: '🏛️', economy: '📈', entertainment: '🎤',
     sports: '⚽', tech: '💻', social: '🌍', etc: '🎲',
   }
+
+  // 공유 카드용 데이터
+  const pickPercent = yesOption ? Math.round(yesOption.price * 100) : 50
+  const passPercent = noOption  ? Math.round(noOption.price  * 100) : 50
+  const categoryKo  = CATEGORY_KO[issue.category] ?? '기타'
 
   const thumbnail = issue.thumbnail_url ? (
     // eslint-disable-next-line @next/next/no-img-element
@@ -113,9 +121,20 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
           <h1 style={{ fontSize: '22px', fontWeight: 800, color: Colors.textPrimary, margin: '0 0 10px', lineHeight: 1.3 }}>
             {issue.title}
           </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <CategoryBadge category={issue.category} />
             <span style={{ fontSize: '13px', color: Colors.textTertiary }}>{timeLeft}</span>
+            <span style={{ fontSize: '13px', color: Colors.textTertiary }}>·</span>
+            <span style={{ fontSize: '13px', color: Colors.textTertiary }}>{issue.participant_count ?? 0}명 참여</span>
+            {/* 공유 버튼 */}
+            <ShareButton
+              issueId={issue.id}
+              title={issue.title}
+              pick={pickPercent}
+              pass={passPercent}
+              category={categoryKo}
+              participants={issue.participant_count ?? 0}
+            />
           </div>
         </div>
       </div>
@@ -192,7 +211,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
             </div>
           )}
 
-          {/* 커뮤니티 탭 — binary/multi 모두 표시 */}
+          {/* 커뮤니티 탭 */}
           {communityYesOpt && communityNoOpt && (
             <CommunityTabs
               issueId={issue.id}

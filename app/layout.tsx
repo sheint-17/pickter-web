@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils"
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
-  title: 'PICKTER — 예측이 계급이 되는 곳',
-  description: '무료 포인트 기반 집단지성 예측 플랫폼',
+  title: 'PICKTER — 세상보다 먼저 맞혀라',
+  description: '세상보다 먼저 맞혀라. 무료 포인트 기반 집단지성 예측 플랫폼.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -27,7 +27,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             zIndex: 90, background: 'white', borderBottom: '1px solid #F0F0F0',
           }}>
             <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 16px' }}>
-              {/* useSearchParams() 사용으로 Suspense 필수 */}
               <Suspense fallback={<div style={{ height: '48px' }} />}>
                 <CategoryBar />
               </Suspense>

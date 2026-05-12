@@ -8,6 +8,12 @@ import { TierBadge } from '@/components/ui/badge'
 import { UserTier, TicketWithRelations, SettlementWithRelations } from '@/types'
 import NicknameEditor from './NicknameEditor'
 import { LogoutButton } from './LogoutButton'
+import { ReportShareButton } from '@/components/issue/ReportShareButton'
+
+const CATEGORY_KO: Record<string, string> = {
+  politics: '정치', economy: '경제', entertainment: '엔터',
+  sports: '스포츠', tech: 'IT', social: '사회', etc: '기타',
+}
 
 export default async function MyPage() {
   const cookieStore = await cookies()
@@ -65,6 +71,12 @@ export default async function MyPage() {
     }))
     .sort((a, b) => b.rate - a.rate)
   const oracleCategories = categoryStats.filter(s => s.total >= 10 && s.rate >= 70)
+
+  // 리포트 공유용 데이터 계산
+  const totalCount = (settlementsFull ?? []).length
+  const correctCount = (settlementsFull ?? []).filter(s => s.is_correct).length
+  const overallAccuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0
+  const bestCategory = categoryStats[0] ? (CATEGORY_KO[categoryStats[0].category] ?? categoryStats[0].category) : '전체'
 
   const { data: userBadges } = await supabase
     .from('user_badges')
@@ -184,7 +196,22 @@ export default async function MyPage() {
         )}
       </div>
 
+      {/* 픽터 리포트 */}
       <PickterReport categoryStats={categoryStats} oracleCategories={oracleCategories} />
+
+      {/* 리포트 공유 버튼 */}
+      {totalCount > 0 && (
+        <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+          <ReportShareButton
+            nickname={profile?.nickname ?? '픽터 유저'}
+            tier={profile?.tier ?? 'Unranked'}
+            rp={profile?.rp_total ?? 0}
+            accuracy={overallAccuracy}
+            best={bestCategory}
+            count={totalCount}
+          />
+        </div>
+      )}
 
       {/* 로그아웃 */}
       <LogoutButton />
@@ -239,11 +266,6 @@ function BadgeSection({ badges }: { badges: UserBadge[] }) {
       </div>
     </div>
   )
-}
-
-const CATEGORY_KO: Record<string, string> = {
-  politics: '정치', economy: '경제', entertainment: '엔터',
-  sports: '스포츠', tech: 'IT', social: '사회', etc: '기타',
 }
 
 type CategoryStat = { category: string; total: number; correct: number; rate: number }

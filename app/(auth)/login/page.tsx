@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase'
 export default function LoginPage() {
   
   async function handleGoogleLogin() {
-    console.log('버튼 클릭됨!')
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -28,7 +27,7 @@ export default function LoginPage() {
       <h1 style={{ fontSize: '32px', fontWeight: 'bold' }}>
         PICK<span style={{ color: '#7B2FBE' }}>TER</span>
       </h1>
-      <p style={{ color: '#999' }}>예측이 계급이 되는 곳</p>
+      <p style={{ color: '#999' }}>세상보다 먼저 맞혀라</p>
       <button
         onClick={handleGoogleLogin}
         style={{

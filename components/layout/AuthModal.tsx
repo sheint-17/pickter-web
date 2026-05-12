@@ -52,7 +52,7 @@ export function AuthModal({ isOpen, mode, onClose, onModeChange }: Props) {
             <span style={{ color: '#7B2FBE' }}>PICK</span><span style={{ color: '#00B37D' }}>TER</span>
           </div>
           <p style={{ fontSize: '14px', color: '#9CA3AF', margin: 0 }}>
-            {mode === 'login' ? '예측으로 계급을 증명하세요' : '지금 시작하면 1,000P 무료 지급'}
+            {mode === 'login' ? '세상보다 먼저 맞혀라' : '지금 시작하면 1,000P 무료 지급'}
           </p>
         </div>
 
@@ -92,7 +92,7 @@ export function AuthModal({ isOpen, mode, onClose, onModeChange }: Props) {
           {loading ? '로그인 중...' : 'Google로 계속하기'}
         </button>
 
-        {/* 카카오 로그인 — 활성화 */}
+        {/* 카카오 로그인 */}
         <button onClick={handleKakaoLogin} disabled={loading} style={{
           width: '100%', padding: '13px', borderRadius: '10px', border: 'none',
           background: '#FEE500', cursor: loading ? 'not-allowed' : 'pointer',
