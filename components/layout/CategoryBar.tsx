@@ -124,6 +124,7 @@ export default function CategoryBar() {
         <div style={{
           display: 'flex', alignItems: 'center', gap: '8px',
           flex: 1, overflowX: 'auto', scrollbarWidth: 'none',
+          msOverflowStyle: 'none' as const,
         }}>
           {categories.map(cat => (
             <button
@@ -171,75 +172,21 @@ export default function CategoryBar() {
           </>
         )}
 
-        {/* 좁은 화면: 더보기 드롭다운 */}
+        {/* 좁은 화면: 랭킹/출석/이슈제안 아이콘만 표시 */}
         {isMobile && (
-          <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
-            <button onClick={() => setOpen(p => !p)} style={menuPillStyle}>
-              더보기 {open ? '▲' : '▼'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            <Link href="/ranking" style={{ ...menuPillStyle, textDecoration: 'none', padding: '6px 10px' }}>
+              <Trophy size={14} strokeWidth={2} />
+            </Link>
+            <Link href="/attendance" style={{ ...menuPillStyle, textDecoration: 'none', padding: '6px 10px' }}>
+              <CalendarCheck size={14} strokeWidth={2} />
+            </Link>
+            <button
+              onClick={handleProposeClick}
+              style={{ ...menuPillStyle, color: '#7B2FBE', borderColor: '#D8B4FE', padding: '6px 10px' }}
+            >
+              <Lightbulb size={14} strokeWidth={2} />
             </button>
-            {open && (
-              <div style={{
-                position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-                zIndex: 9999, background: 'white',
-                border: '1px solid #E5E7EB', borderRadius: '12px',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                padding: '8px', minWidth: '160px',
-              }}>
-                {menuItems.map(({ icon: Icon, label, href }) => (
-                  <Link key={href} href={href} onClick={() => setOpen(false)} style={{ textDecoration: 'none' }}>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      padding: '10px 16px', fontSize: '14px',
-                      color: '#1A1A1A', borderRadius: '8px', cursor: 'pointer',
-                    }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#F4F4F5')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <Icon size={15} strokeWidth={2} color="#555" />
-                      <span>{label}</span>
-                    </div>
-                  </Link>
-                ))}
-
-                {/* 구분선 */}
-                <div style={{ height: '1px', background: '#F0F0F0', margin: '4px 8px' }} />
-
-                {/* 이슈 제안하기 */}
-                <div
-                  onClick={handleProposeClick}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '10px 16px', fontSize: '14px',
-                    color: '#7B2FBE', borderRadius: '8px', cursor: 'pointer',
-                    fontWeight: 600,
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#F5F0FF')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <Lightbulb size={15} strokeWidth={2} />
-                  <span>이슈 제안하기</span>
-                </div>
-
-                {isLoggedIn && (
-                  <>
-                    <div style={{ height: '1px', background: '#F0F0F0', margin: '4px 8px' }} />
-                    <div
-                      onClick={() => { handleLogout(); setOpen(false) }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        padding: '10px 16px', fontSize: '14px',
-                        color: '#EF4444', borderRadius: '8px', cursor: 'pointer',
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#FEF2F2')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <LogOut size={15} strokeWidth={2} />
-                      <span>로그아웃</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>
