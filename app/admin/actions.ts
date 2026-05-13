@@ -51,6 +51,7 @@ export async function createIssue(
   const yesLabel = (formData.get('yes_label') as string)?.trim()
   const noLabel = (formData.get('no_label') as string)?.trim()
   const thumbnailUrl = (formData.get('thumbnail_url') as string)?.trim() || null
+  const resolutionRules = (formData.get('resolution_rules') as string)?.trim() || null
 
   if (!title) return { success: false, error: '제목을 입력해주세요' }
   if (!closesAtRaw) return { success: false, error: '마감일시를 입력해주세요' }
@@ -70,6 +71,7 @@ export async function createIssue(
       status: 'active',
       created_by: adminUser.id,
       thumbnail_url: thumbnailUrl,
+      resolution_rules: resolutionRules,
     })
     .select()
     .single()

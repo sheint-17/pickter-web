@@ -126,7 +126,7 @@ const CATEGORIES: { value: IssueCategory; label: string }[] = [
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 12px',
-  border: `1px solid ${Colors.border}`,
+  border: `1px solid #E5E7EB`,
   borderRadius: '8px',
   fontSize: '14px',
   color: Colors.textPrimary,
@@ -194,7 +194,7 @@ function IssueCreateForm() {
       <form key={formKey} action={formAction}>
         <div style={{
           background: Colors.white, borderRadius: '16px',
-          padding: '20px', border: `1px solid ${Colors.border}`,
+          padding: '20px', border: `1px solid #E5E7EB`,
         }}>
           <FieldRow label="제목">
             <input
@@ -238,7 +238,7 @@ function IssueCreateForm() {
                 <label key={b} style={{
                   flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   gap: '6px', padding: '10px', borderRadius: '8px',
-                  border: `1px solid ${Colors.border}`, cursor: 'pointer',
+                  border: `1px solid #E5E7EB`, cursor: 'pointer',
                   fontSize: '14px', fontWeight: 600, color: Colors.textPrimary,
                 }}>
                   <input
@@ -284,6 +284,24 @@ function IssueCreateForm() {
             </div>
           </div>
 
+          <FieldRow label="정산 규칙 (선택)">
+            <textarea
+              name="resolution_rules"
+              rows={4}
+              placeholder={`예: 2026년 12월 31일 23:59 KST 기준, 선거관리위원회 공식 발표 결과를 따릅니다.\n재검표·무효표 여부는 결과에 영향을 주지 않습니다.\n결과가 모호한 경우 그랜드마스터 평의회에서 최종 확정합니다.`}
+              style={{
+                ...inputStyle,
+                resize: 'vertical',
+                minHeight: '96px',
+                lineHeight: '1.5',
+                fontFamily: 'inherit',
+              }}
+            />
+            <p style={{ fontSize: '11px', color: Colors.textTertiary, margin: '6px 0 0' }}>
+              이슈 상세 페이지에 접었다 펼 수 있는 섹션으로 표시돼요
+            </p>
+          </FieldRow>
+
           <button
             type="submit"
             disabled={isPending || state?.success === true}
@@ -318,7 +336,7 @@ export default function AdminTabs({
     flex: 1, padding: '9px 4px',
     background: active ? Colors.primary : Colors.white,
     color: active ? Colors.white : Colors.textSecondary,
-    border: `1px solid ${active ? Colors.primary : Colors.border}`,
+    border: `1px solid ${active ? Colors.primary : '#E5E7EB'}`,
     borderRadius: '8px',
     fontSize: '13px', fontWeight: 700,
     cursor: 'pointer',

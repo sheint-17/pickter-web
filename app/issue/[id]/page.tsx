@@ -9,6 +9,7 @@ import TradePanel from '@/components/issue/TradePanel'
 import PriceChart from '@/components/issue/PriceChart'
 import CommunityTabs from '@/components/issue/CommunityTabs'
 import { ShareButton } from '@/components/issue/ShareButton'
+import ResolutionRules from '@/components/issue/ResolutionRules'
 
 const CATEGORY_KO: Record<string, string> = {
   politics: '정치', economy: '경제', entertainment: '엔터',
@@ -33,7 +34,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
     .from('issues')
     .select('*, issue_options!issue_options_issue_id_fkey(*)')
     .eq('id', id)
-    .single() as { data: Issue | null }
+    .single() as { data: (Issue & { resolution_rules?: string | null }) | null }
 
   if (!issue) notFound()
 
@@ -109,6 +110,8 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
       {CATEGORY_EMOJI[issue.category] ?? '🎲'}
     </div>
   )
+
+  const resolutionRules = issue.resolution_rules ?? null
 
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '24px' }}>
@@ -187,6 +190,12 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
             tickets={(tickets as Ticket[]) ?? []}
           />
         </div>
+        {/* 정산 규칙 — 모바일 */}
+        {resolutionRules && (
+          <div style={{ marginBottom: '16px' }}>
+            <ResolutionRules rules={resolutionRules} />
+          </div>
+        )}
         {communityYesOpt && communityNoOpt && (
           <CommunityTabs
             issueId={issue.id}
@@ -282,6 +291,13 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
                   )
                 })}
               </div>
+            </div>
+          )}
+
+          {/* 정산 규칙 — 데스크탑 (확률 게이지 아래) */}
+          {resolutionRules && (
+            <div style={{ marginTop: '16px' }}>
+              <ResolutionRules rules={resolutionRules} />
             </div>
           )}
         </div>
