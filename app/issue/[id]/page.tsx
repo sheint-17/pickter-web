@@ -142,17 +142,20 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
       {/* 2컬럼 그리드 */}
       <style>{`
         .issue-detail-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
-        .issue-trade-panel { position: sticky; top: 80px; }
+        .issue-trade-panel { position: sticky; top: 80px; grid-row: 1 / 5; grid-column: 2; }
         @media (max-width: 768px) {
           .issue-detail-grid { grid-template-columns: 1fr; }
-          .issue-trade-panel { position: static; }
+          .issue-trade-panel { position: static; grid-row: auto; grid-column: auto; order: 2; }
+          .issue-chart { order: 1; }
+          .issue-prob { order: 3; }
+          .issue-community { order: 4; }
         }
       `}</style>
       <div className="issue-detail-grid">
-        <div>
 
-          {/* Binary: 픽/패스 확률 + 게이지 */}
-          {isBinary && yesOption && noOption && (() => {
+        {/* Binary: 픽/패스 확률 + 게이지 */}
+        <div className="issue-prob">
+        {isBinary && yesOption && noOption && (() => {
             const yp = Math.round(yesOption.price * 100)
             const np = 100 - yp
             return (
@@ -167,7 +170,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
                     <span style={{ fontSize: '36px', fontWeight: 900, color: '#FF4D6D', lineHeight: 1 }}>{np}%</span>
                   </div>
                 </div>
-                <div style={{ marginBottom: '24px' }}>
+                <div>
                   <div style={{ display: 'flex', borderRadius: '999px', overflow: 'hidden', height: '12px' }}>
                     <div style={{ width: `${yp}%`, background: '#00B37D', transition: 'width 0.5s' }} />
                     <div style={{ width: `${np}%`, background: '#FF4D6D', transition: 'width 0.5s' }} />
@@ -183,7 +186,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
 
           {/* Multi: 전체 선택지 확률 리스트 */}
           {!isBinary && (
-            <div style={{ marginBottom: '24px', background: 'white', borderRadius: '16px', border: '1px solid #F0F0F0', padding: '16px 20px' }}>
+            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #F0F0F0', padding: '16px 20px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {sortedOptions.map((opt, idx) => {
                   const totalPrice = sortedOptions.reduce((s, o) => s + o.price, 0) || 1
@@ -204,22 +207,24 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
               </div>
             </div>
           )}
+        </div>
 
-          {/* 차트 */}
+        {/* 차트 */}
+        <div className="issue-chart">
           {(yesOption || sortedOptions[0]) && (
-            <div style={{ marginBottom: '24px' }}>
-              <PriceChart
-                  issueId={issue.id}
-                  yesOptionId={(yesOption ?? sortedOptions[0]).id}
-                  firstOptionLabel={isBinary ? undefined : sortedOptions[0]?.label}
-                  secondOptionId={!isBinary && sortedOptions[1] ? sortedOptions[1].id : undefined}
-                  secondOptionLabel={!isBinary && sortedOptions[1] ? sortedOptions[1].label : undefined}
-                  height={240}
-              />
-            </div>
+            <PriceChart
+                issueId={issue.id}
+                yesOptionId={(yesOption ?? sortedOptions[0]).id}
+                firstOptionLabel={isBinary ? undefined : sortedOptions[0]?.label}
+                secondOptionId={!isBinary && sortedOptions[1] ? sortedOptions[1].id : undefined}
+                secondOptionLabel={!isBinary && sortedOptions[1] ? sortedOptions[1].label : undefined}
+                height={240}
+            />
           )}
+        </div>
 
-          {/* 커뮤니티 탭 */}
+        {/* 커뮤니티 탭 */}
+        <div className="issue-community">
           {communityYesOpt && communityNoOpt && (
             <CommunityTabs
               issueId={issue.id}
@@ -248,4 +253,3 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
       </div>
     </div>
   )
-}
