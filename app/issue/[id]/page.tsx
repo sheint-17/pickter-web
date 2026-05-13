@@ -97,7 +97,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
 
   // 공유 카드용 데이터
   const pickPercent = yesOption ? Math.round(yesOption.price * 100) : 50
-  const passPercent = noOption  ? Math.round(noOption.price  * 100) : 50
+  const passPercent = 100 - pickPercent
   const categoryKo  = CATEGORY_KO[issue.category] ?? '기타'
 
   const thumbnail = issue.thumbnail_url ? (
@@ -146,7 +146,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
           {/* Binary: 픽/패스 확률 + 게이지 */}
           {isBinary && yesOption && noOption && (() => {
             const yp = Math.round(yesOption.price * 100)
-            const np = Math.round(noOption.price * 100)
+            const np = 100 - yp
             return (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '12px' }}>

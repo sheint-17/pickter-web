@@ -21,7 +21,6 @@ const categories = [
 const menuItems = [
   { icon: Trophy,        label: '랭킹',    href: '/ranking' },
   { icon: CalendarCheck, label: '출석',    href: '/attendance' },
-  { icon: Swords,        label: 'AI 대결', href: '/ai-challenge' },
 ]
 
 const TIER_ORDER = ['Unranked', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Grandmaster']
@@ -148,6 +147,15 @@ export default function CategoryBar() {
                   {label}
                 </Link>
               ))}
+              <button
+                onClick={handleProposeClick}
+                style={{ ...menuPillStyle, color: '#7B2FBE', borderColor: '#D8B4FE' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#F5F0FF')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <Lightbulb size={14} strokeWidth={2} />
+                이슈 제안
+              </button>
               {isLoggedIn && (
                 <button
                   onClick={handleLogout}

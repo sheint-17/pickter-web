@@ -4,7 +4,6 @@ import { Suspense } from 'react'
 import './globals.css'
 import GNB from '@/components/layout/GNB'
 import CategoryBar from '@/components/layout/CategoryBar'
-import { FloatingProposeButton } from '@/components/layout/FloatingProposeButton'
 import { AuthModalProvider } from '@/components/layout/AuthModalProvider'
 import { Geist } from "next/font/google"
 import { cn } from "@/lib/utils"
@@ -41,7 +40,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}>
             {children}
           </main>
-          <FloatingProposeButton />
         </AuthModalProvider>
       </body>
     </html>

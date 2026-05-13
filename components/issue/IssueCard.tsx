@@ -22,7 +22,7 @@ export default function IssueCard({ issue }: IssueCardProps) {
   const yesOption = issue.issue_options?.find((o) => o.option_type === 'yes')
   const noOption = issue.issue_options?.find((o) => o.option_type === 'no')
   const yesPercent = yesOption ? Math.round(yesOption.price * 100) : 50
-  const noPercent = noOption ? Math.round(noOption.price * 100) : 50
+  const noPercent = 100 - yesPercent
 
   const closesAt = new Date(issue.closes_at)
   const now = new Date()
