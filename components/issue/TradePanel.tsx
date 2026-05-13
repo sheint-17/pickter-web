@@ -14,7 +14,7 @@ interface TradePanelProps {
   tickets: Ticket[]
 }
 
-export default function TradePanel({ issueId, issueType, options, tickets }: TradePanelProps) {
+export default function TradePanel({ issueId, issueType, options, tickets: initialTickets }: TradePanelProps) {
   const router = useRouter()
   const [mode, setMode] = useState<'buy' | 'sell'>('buy')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -22,18 +22,26 @@ export default function TradePanel({ issueId, issueType, options, tickets }: Tra
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [balance, setBalance] = useState<number | null>(null)
+  const [tickets, setTickets] = useState<Ticket[]>(initialTickets)
 
   const sorted = [...options].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
   const hasTickets = tickets.length > 0
   const selectedOption = sorted.find(o => o.id === selectedId)
   const selectedTicket = tickets.find(t => t.option_id === selectedId)
 
+  async function fetchUserData() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const [{ data: userData }, { data: ticketData }] = await Promise.all([
+      supabase.from('users').select('point_balance').eq('id', user.id).single(),
+      supabase.from('tickets').select('*').eq('user_id', user.id).eq('issue_id', issueId),
+    ])
+    if (userData) setBalance(userData.point_balance)
+    if (ticketData) setTickets(ticketData)
+  }
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return
-      supabase.from('users').select('point_balance').eq('id', user.id).single()
-        .then(({ data }) => { if (data) setBalance(data.point_balance) })
-    })
+    fetchUserData()
   }, [])
 
   async function handleTrade() {
@@ -60,9 +68,7 @@ export default function TradePanel({ issueId, issueType, options, tickets }: Tra
       return
     }
 
-    const { data: { user: u } } = await supabase.auth.getUser()
-    if (u) supabase.from('users').select('point_balance').eq('id', u.id).single()
-      .then(({ data }) => { if (data) setBalance(data.point_balance) })
+    await fetchUserData()
     router.refresh()
     setSelectedId(null); setAmount('')
   }
