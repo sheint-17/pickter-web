@@ -45,6 +45,31 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* 카테고리바 스크롤바 숨김 */
+.category-tab-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* 이슈 상세 모바일 레이아웃 */
+.issue-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: start;
+}
+.issue-trade-panel {
+  position: sticky;
+  top: 80px;
+  grid-row: 1 / 5;
+  grid-column: 2;
+}
+.issue-mobile-layout { display: none; }
+.issue-desktop-layout { display: grid; }
+@media (max-width: 768px) {
+  .issue-mobile-layout { display: block; }
+  .issue-desktop-layout { display: none !important; }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

@@ -121,20 +121,30 @@ export default function CategoryBar() {
       <div style={{ display: 'flex', alignItems: 'center', height: '48px', gap: '8px' }}>
 
         {/* 카테고리 탭 */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '8px',
-          flex: 1, overflowX: 'auto', scrollbarWidth: 'none',
-          msOverflowStyle: 'none' as const,
-        }}>
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => handleCategoryClick(cat.id)}
-              style={pillStyle(activeCategory === cat.id)}
-            >
-              {cat.label}
-            </button>
-          ))}
+        <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+          <div className="category-tab-scroll" style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            overflowX: 'auto', scrollbarWidth: 'none',
+            msOverflowStyle: 'none' as const,
+            WebkitOverflowScrolling: 'touch',
+          }}>
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => handleCategoryClick(cat.id)}
+                style={pillStyle(activeCategory === cat.id)}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          {/* 페이드 아웃 */}
+          <div style={{
+            position: 'absolute', right: 0, top: 0, bottom: 0,
+            width: '40px',
+            background: 'linear-gradient(to right, transparent, white)',
+            pointerEvents: 'none',
+          }} />
         </div>
 
         {/* 넓은 화면 */}

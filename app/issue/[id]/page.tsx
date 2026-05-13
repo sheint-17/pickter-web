@@ -139,19 +139,96 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
-      {/* 2컬럼 그리드 */}
-      <style>{`
-        .issue-detail-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
-        .issue-trade-panel { position: sticky; top: 80px; grid-row: 1 / 5; grid-column: 2; }
-        @media (max-width: 768px) {
-          .issue-detail-grid { grid-template-columns: 1fr; }
-          .issue-trade-panel { position: static; grid-row: auto; grid-column: auto; order: 2; }
-          .issue-chart { order: 1; }
-          .issue-prob { order: 3; }
-          .issue-community { order: 4; }
-        }
-      `}</style>
-      <div className="issue-detail-grid">
+      {/* 모바일: 1컬럼 */}
+      <div className="issue-mobile-layout">
+        <div style={{ marginBottom: '16px' }}>
+          {(yesOption || sortedOptions[0]) && (
+            <PriceChart
+              issueId={issue.id}
+              yesOptionId={(yesOption ?? sortedOptions[0]).id}
+              firstOptionLabel={isBinary ? undefined : sortedOptions[0]?.label}
+              secondOptionId={!isBinary && sortedOptions[1] ? sortedOptions[1].id : undefined}
+              secondOptionLabel={!isBinary && sortedOptions[1] ? sortedOptions[1].label : undefined}
+              height={200}
+            />
+          )}
+        </div>
+        {isBinary && yesOption && noOption && (() => {
+          const yp = Math.round(yesOption.price * 100)
+          const np = 100 - yp
+          return (
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '13px', color: Colors.textTertiary, marginBottom: '4px' }}>픽</div>
+                  <span style={{ fontSize: '36px', fontWeight: 900, color: '#00B37D', lineHeight: 1 }}>{yp}%</span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '13px', color: Colors.textTertiary, marginBottom: '4px' }}>패스</div>
+                  <span style={{ fontSize: '36px', fontWeight: 900, color: '#FF4D6D', lineHeight: 1 }}>{np}%</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', borderRadius: '999px', overflow: 'hidden', height: '12px' }}>
+                <div style={{ width: `${yp}%`, background: '#00B37D' }} />
+                <div style={{ width: `${np}%`, background: '#FF4D6D' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+                <span style={{ fontSize: '12px', color: '#00B37D', fontWeight: 600 }}>{yesOption.label ?? '픽'}</span>
+                <span style={{ fontSize: '12px', color: '#FF4D6D', fontWeight: 600 }}>{noOption.label ?? '패스'}</span>
+              </div>
+            </div>
+          )
+        })()}
+        <div style={{ marginBottom: '16px' }}>
+          <TradePanel
+            issueId={issue.id}
+            issueType={isBinary ? 'binary' : 'multi'}
+            options={sortedOptions}
+            tickets={(tickets as Ticket[]) ?? []}
+          />
+        </div>
+        {communityYesOpt && communityNoOpt && (
+          <CommunityTabs
+            issueId={issue.id}
+            issueStatus={issue.status}
+            currentUserId={user?.id ?? null}
+            currentNickname={(userProfile as { nickname: string } | null)?.nickname ?? null}
+            currentPosition={currentPosition}
+            journals={journals as any}
+            hasExistingJournal={hasExistingJournal}
+            yesOption={communityYesOpt}
+            noOption={communityNoOpt}
+            allTickets={(allTickets ?? []) as { user_id: string; option_id: string }[]}
+          />
+        )}
+      </div>
+
+      {/* 데스크탑: 2컬럼 */}
+      <div className="issue-detail-grid issue-desktop-layout">
+
+        {/* 차트 */}
+        <div className="issue-chart">
+          {(yesOption || sortedOptions[0]) && (
+            <PriceChart
+                issueId={issue.id}
+                yesOptionId={(yesOption ?? sortedOptions[0]).id}
+                firstOptionLabel={isBinary ? undefined : sortedOptions[0]?.label}
+                secondOptionId={!isBinary && sortedOptions[1] ? sortedOptions[1].id : undefined}
+                secondOptionLabel={!isBinary && sortedOptions[1] ? sortedOptions[1].label : undefined}
+                height={240}
+            />
+          )}
+        </div>
+
+        {/* TradePanel */}
+        <div className="issue-trade-panel">
+          <TradePanel
+            issueId={issue.id}
+            issueType={isBinary ? 'binary' : 'multi'}
+            options={sortedOptions}
+            tickets={(tickets as Ticket[]) ?? []}
+          />
+        </div>
 
         {/* Binary: 픽/패스 확률 + 게이지 */}
         <div className="issue-prob">
@@ -209,20 +286,6 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
           )}
         </div>
 
-        {/* 차트 */}
-        <div className="issue-chart">
-          {(yesOption || sortedOptions[0]) && (
-            <PriceChart
-                issueId={issue.id}
-                yesOptionId={(yesOption ?? sortedOptions[0]).id}
-                firstOptionLabel={isBinary ? undefined : sortedOptions[0]?.label}
-                secondOptionId={!isBinary && sortedOptions[1] ? sortedOptions[1].id : undefined}
-                secondOptionLabel={!isBinary && sortedOptions[1] ? sortedOptions[1].label : undefined}
-                height={240}
-            />
-          )}
-        </div>
-
         {/* 커뮤니티 탭 */}
         <div className="issue-community">
           {communityYesOpt && communityNoOpt && (
@@ -241,15 +304,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
           )}
         </div>
 
-        {/* TradePanel */}
-        <div className="issue-trade-panel">
-          <TradePanel
-            issueId={issue.id}
-            issueType={isBinary ? 'binary' : 'multi'}
-            options={sortedOptions}
-            tickets={(tickets as Ticket[]) ?? []}
-          />
-        </div>
       </div>
     </div>
   )
+}
