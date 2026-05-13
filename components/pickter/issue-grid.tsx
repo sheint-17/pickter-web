@@ -21,7 +21,7 @@ function mapToCardIssue(issue: SupabaseIssue): Issue {
   const yesOption = sorted.find(o => o.option_type === 'yes')
   const noOption  = sorted.find(o => o.option_type === 'no')
   const pickPercent  = yesOption ? Math.round(yesOption.price * 100) : 50
-  const passPercent  = noOption  ? Math.round(noOption.price  * 100) : 100 - pickPercent
+  const passPercent  = 100 - pickPercent
 
   // multi 선택지: 전체를 percent로 변환, order_index 순 정렬
   const totalPrice = sorted.reduce((s, o) => s + o.price, 0) || 1
