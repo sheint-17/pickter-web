@@ -140,7 +140,15 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
       </div>
 
       {/* 2컬럼 그리드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '24px', alignItems: 'start' }}>
+      <style>{`
+        .issue-detail-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
+        .issue-trade-panel { position: sticky; top: 80px; }
+        @media (max-width: 768px) {
+          .issue-detail-grid { grid-template-columns: 1fr; }
+          .issue-trade-panel { position: static; }
+        }
+      `}</style>
+      <div className="issue-detail-grid">
         <div>
 
           {/* Binary: 픽/패스 확률 + 게이지 */}
@@ -229,7 +237,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
         </div>
 
         {/* TradePanel */}
-        <div style={{ position: 'sticky', top: '80px' }}>
+        <div className="issue-trade-panel">
           <TradePanel
             issueId={issue.id}
             issueType={isBinary ? 'binary' : 'multi'}
