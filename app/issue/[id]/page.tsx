@@ -96,7 +96,6 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
     sports: '⚽', tech: '💻', social: '🌍', etc: '🎲',
   }
 
-  // 공유 카드용 데이터
   const pickPercent = yesOption ? Math.round(yesOption.price * 100) : 50
   const passPercent = 100 - pickPercent
   const categoryKo  = CATEGORY_KO[issue.category] ?? '기타'
@@ -112,6 +111,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
   )
 
   const resolutionRules = issue.resolution_rules ?? null
+  const lmsrB = issue.lmsr_b ?? 100
 
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '24px' }}>
@@ -129,7 +129,6 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
             <span style={{ fontSize: '13px', color: Colors.textTertiary }}>{timeLeft}</span>
             <span style={{ fontSize: '13px', color: Colors.textTertiary }}>·</span>
             <span style={{ fontSize: '13px', color: Colors.textTertiary }}>{issue.participant_count ?? 0}명 참여</span>
-            {/* 공유 버튼 */}
             <ShareButton
               issueId={issue.id}
               title={issue.title}
@@ -186,11 +185,11 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
           <TradePanel
             issueId={issue.id}
             issueType={isBinary ? 'binary' : 'multi'}
+            lmsrB={lmsrB}
             options={sortedOptions}
             tickets={(tickets as Ticket[]) ?? []}
           />
         </div>
-        {/* 정산 규칙 — 모바일 */}
         {resolutionRules && (
           <div style={{ marginBottom: '16px' }}>
             <ResolutionRules rules={resolutionRules} />
@@ -215,7 +214,6 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
       {/* 데스크탑: 2컬럼 */}
       <div className="issue-detail-grid issue-desktop-layout">
 
-        {/* 차트 */}
         <div className="issue-chart">
           {(yesOption || sortedOptions[0]) && (
             <PriceChart
@@ -229,19 +227,18 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
           )}
         </div>
 
-        {/* TradePanel */}
         <div className="issue-trade-panel">
           <TradePanel
             issueId={issue.id}
             issueType={isBinary ? 'binary' : 'multi'}
+            lmsrB={lmsrB}
             options={sortedOptions}
             tickets={(tickets as Ticket[]) ?? []}
           />
         </div>
 
-        {/* Binary: 픽/패스 확률 + 게이지 */}
         <div className="issue-prob">
-        {isBinary && yesOption && noOption && (() => {
+          {isBinary && yesOption && noOption && (() => {
             const yp = Math.round(yesOption.price * 100)
             const np = 100 - yp
             return (
@@ -270,7 +267,6 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
             )
           })()}
 
-          {/* Multi: 전체 선택지 확률 리스트 */}
           {!isBinary && (
             <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #F0F0F0', padding: '16px 20px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -294,7 +290,6 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
             </div>
           )}
 
-          {/* 정산 규칙 — 데스크탑 (확률 게이지 아래) */}
           {resolutionRules && (
             <div style={{ marginTop: '16px' }}>
               <ResolutionRules rules={resolutionRules} />
@@ -302,7 +297,6 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
           )}
         </div>
 
-        {/* 커뮤니티 탭 */}
         <div className="issue-community">
           {communityYesOpt && communityNoOpt && (
             <CommunityTabs

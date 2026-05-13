@@ -56,6 +56,7 @@ export interface Issue {
   category: IssueCategory
   status: IssueStatus
   issue_type: IssueType
+  lmsr_b: number
   closes_at: string
   created_at: string
   thumbnail_url?: string | null

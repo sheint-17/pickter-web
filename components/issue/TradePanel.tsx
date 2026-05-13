@@ -10,11 +10,49 @@ import { IssueOption, Ticket } from '@/types'
 interface TradePanelProps {
   issueId: string
   issueType: 'binary' | 'multi'
+  lmsrB: number
   options: IssueOption[]
   tickets: Ticket[]
 }
 
-export default function TradePanel({ issueId, issueType, options, tickets: initialTickets }: TradePanelProps) {
+// LMSR 비용 함수: C(q) = b × ln(Σ exp(q_i / b))
+function lmsrCost(shares: number[], b: number): number {
+  const maxQ = Math.max(...shares)
+  const sumExp = shares.reduce((acc, q) => acc + Math.exp((q - maxQ) / b), 0)
+  return b * (Math.log(sumExp) + maxQ / b)
+}
+
+// 매수 시 실제 지불 픽 계산
+function calcBuyCost(currentShares: number[], optionIdx: number, deltaShares: number, b: number): number {
+  const before = lmsrCost(currentShares, b)
+  const after = lmsrCost(
+    currentShares.map((q, i) => (i === optionIdx ? q + deltaShares : q)),
+    b
+  )
+  return after - before
+}
+
+// 픽을 입력했을 때 실제로 받을 수 있는 티켓 수 역산 (이진 탐색)
+function calcTicketsFromPoints(currentShares: number[], optionIdx: number, points: number, b: number): number {
+  let lo = 0, hi = points * 10
+  for (let i = 0; i < 64; i++) {
+    const mid = (lo + hi) / 2
+    const cost = calcBuyCost(currentShares, optionIdx, mid, b)
+    if (cost < points) lo = mid
+    else hi = mid
+  }
+  return lo
+}
+
+// 매수 후 확률 계산
+function calcPriceAfter(currentShares: number[], optionIdx: number, deltaShares: number, b: number): number {
+  const newShares = currentShares.map((q, i) => (i === optionIdx ? q + deltaShares : q))
+  const maxQ = Math.max(...newShares)
+  const sumExp = newShares.reduce((acc, q) => acc + Math.exp((q - maxQ) / b), 0)
+  return Math.exp((newShares[optionIdx] - maxQ) / b) / sumExp
+}
+
+export default function TradePanel({ issueId, issueType, lmsrB, options, tickets: initialTickets }: TradePanelProps) {
   const router = useRouter()
   const [mode, setMode] = useState<'buy' | 'sell'>('buy')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -27,7 +65,10 @@ export default function TradePanel({ issueId, issueType, options, tickets: initi
   const sorted = [...options].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
   const hasTickets = tickets.length > 0
   const selectedOption = sorted.find(o => o.id === selectedId)
+  const selectedOptionIdx = sorted.findIndex(o => o.id === selectedId)
   const selectedTicket = tickets.find(t => t.option_id === selectedId)
+
+  const currentShares = sorted.map(o => o.shares ?? 0)
 
   async function fetchUserData() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -73,6 +114,30 @@ export default function TradePanel({ issueId, issueType, options, tickets: initi
     setSelectedId(null); setAmount('')
   }
 
+  // 슬리피지 미리보기 계산
+  const slippagePreview = (() => {
+    if (!selectedOption || selectedOptionIdx < 0) return null
+    const pts = parseInt(amount)
+    if (!pts || pts <= 0) return null
+
+    if (mode === 'buy') {
+      const estTickets = calcTicketsFromPoints(currentShares, selectedOptionIdx, pts, lmsrB)
+      const estTicketsFloor = Math.floor(estTickets)
+      const priceBefore = selectedOption.price
+      const priceAfter = calcPriceAfter(currentShares, selectedOptionIdx, estTickets, lmsrB)
+      const priceDiff = Math.round((priceAfter - priceBefore) * 100)
+      const estPayout = estTicketsFloor * 100
+      const profit = estPayout - pts
+      const roi = Math.round((profit / pts) * 100)
+      const isHighImpact = Math.abs(priceDiff) >= 5
+
+      return { mode: 'buy' as const, estTickets: estTicketsFloor, estPayout, profit, roi, priceBefore: Math.round(priceBefore * 100), priceAfter: Math.round(priceAfter * 100), priceDiff, isHighImpact }
+    } else {
+      const estReturn = Math.round(pts * selectedOption.price)
+      return { mode: 'sell' as const, estReturn }
+    }
+  })()
+
   return (
     <div style={{ border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', background: Colors.white }}>
 
@@ -99,7 +164,6 @@ export default function TradePanel({ issueId, issueType, options, tickets: initi
           const ticket = tickets.find(t => t.option_id === opt.id)
           const percent = Math.round(opt.price * 100)
 
-          // 색상: binary는 기존 yes/no 컬러, multi는 보라
           const activeColor = isBinary
             ? (isYes ? Colors.yes : isNo ? Colors.no : Colors.primary)
             : Colors.primary
@@ -158,23 +222,46 @@ export default function TradePanel({ issueId, issueType, options, tickets: initi
       </div>
 
       {/* 슬리피지 미리보기 */}
-      {selectedOption && (() => {
-        const pts = parseInt(amount)
-        if (!pts || pts <= 0) return null
-        if (mode === 'buy') {
-          const estTickets = Math.floor(pts / selectedOption.price)
-          const estPayout = estTickets * 100
-          const profit = estPayout - pts
-          const roi = Math.round((profit / pts) * 100)
-          return (
-            <p style={{ fontSize: '12px', color: Colors.textTertiary, margin: '0 0 16px', lineHeight: 1.5 }}>
-              예상 티켓 {estTickets.toLocaleString()}장 · 적중 시 +{estPayout.toLocaleString()}픽{' '}
-              <span style={{ color: Colors.yes }}>(+{roi.toLocaleString()}%)</span>
-            </p>
-          )
-        }
-        return <p style={{ fontSize: '12px', color: Colors.textTertiary, margin: '0 0 16px' }}>예상 환급 {pts.toLocaleString()}픽</p>
-      })()}
+      {slippagePreview && (
+        <div style={{
+          background: slippagePreview.mode === 'buy' && slippagePreview.isHighImpact ? '#FFF7ED' : '#F8F9FA',
+          border: `1px solid ${slippagePreview.mode === 'buy' && slippagePreview.isHighImpact ? '#FED7AA' : '#E5E7EB'}`,
+          borderRadius: '10px', padding: '12px', marginBottom: '16px',
+        }}>
+          {slippagePreview.mode === 'buy' ? (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>예상 티켓</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.textPrimary }}>{slippagePreview.estTickets.toLocaleString()}장</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>적중 시 수익</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.yes }}>+{slippagePreview.profit.toLocaleString()}P ({slippagePreview.roi}%)</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>확률 변화</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: slippagePreview.isHighImpact ? '#EA580C' : Colors.textSecondary }}>
+                  {slippagePreview.priceBefore}% → {slippagePreview.priceAfter}%
+                  {' '}
+                  <span style={{ color: slippagePreview.priceDiff > 0 ? Colors.yes : Colors.no }}>
+                    ({slippagePreview.priceDiff > 0 ? '+' : ''}{slippagePreview.priceDiff}%p)
+                  </span>
+                </span>
+              </div>
+              {slippagePreview.isHighImpact && (
+                <p style={{ fontSize: '11px', color: '#EA580C', margin: '8px 0 0', fontWeight: 600 }}>
+                  ⚠️ 이 거래로 확률이 크게 변합니다
+                </p>
+              )}
+            </>
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '12px', color: Colors.textTertiary }}>예상 환급</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.textPrimary }}>{slippagePreview.estReturn.toLocaleString()}P</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 에러 */}
       {error && <p style={{ color: Colors.no, fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
