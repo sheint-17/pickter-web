@@ -200,7 +200,7 @@ export function FeaturedCarousel() {
   const yesOption = issue.issue_options?.find((o: IssueOption) => o.option_type === 'yes')
   const noOption  = issue.issue_options?.find((o: IssueOption) => o.option_type === 'no')
   const yesPercent = yesOption ? Math.round(yesOption.price * 100) : 50
-  const noPercent  = noOption  ? Math.round(noOption.price  * 100) : 50
+  const noPercent  = 100 - yesPercent
   const timeLeft = diffDays > 0 ? `${diffDays}일 후 마감` : '마감됨'
   const chart = chartCache[issue.id] ?? { data: DUMMY_CHART, dummy: true }
   const yDomain = getYDomain(chart.data)
