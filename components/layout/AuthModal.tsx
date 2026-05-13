@@ -28,7 +28,10 @@ export function AuthModal({ isOpen, mode, onClose, onModeChange }: Props) {
     setLoading(true)
     await supabase.auth.signInWithOAuth({
       provider: 'kakao',
-      options: { redirectTo: `${window.location.origin}/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/callback`,
+        scopes: 'profile_nickname profile_image',
+      },
     })
     setLoading(false)
   }
