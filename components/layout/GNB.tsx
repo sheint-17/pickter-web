@@ -52,13 +52,33 @@ export default function GNB() {
       ])
       setUnreadCount(count ?? 0)
       setProfile(profileData)
+      return user
     }
-    fetchUser()
+
+    let realtimeChannel: ReturnType<typeof supabase.channel> | null = null
+
+    fetchUser().then((user) => {
+      if (!user) return
+      // users 테이블 실시간 구독 (포인트·티어 변경 감지)
+      realtimeChannel = supabase
+        .channel(`gnb-user-${user.id}`)
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'public', table: 'users',
+          filter: `id=eq.${user.id}`,
+        }, (payload) => {
+          const updated = payload.new as { tier: UserTier; point_balance: number }
+          setProfile({ tier: updated.tier, point_balance: updated.point_balance })
+        })
+        .subscribe()
+    })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       fetchUser()
     })
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel)
+    }
   }, [])
 
   const iconBtn = (size: number) => ({
