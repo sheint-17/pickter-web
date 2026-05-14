@@ -40,6 +40,19 @@ export default function AdminIssueList({ issues }: AdminIssueListProps) {
     router.refresh()
   }
 
+  async function handleDelete(issueId: string) {
+    if (!confirm('이 이슈를 삭제할까요?')) return
+    setLoadingId(issueId)
+    setError('')
+    const { error: err } = await supabase
+      .from('issues')
+      .delete()
+      .eq('id', issueId)
+    setLoadingId(null)
+    if (err) { setError(err.message); return }
+    router.refresh()
+  }
+
   const draftIssues  = issues.filter(i => i.status === 'draft')
   const activeIssues = issues.filter(i => i.status !== 'draft')
 
@@ -75,11 +88,12 @@ export default function AdminIssueList({ issues }: AdminIssueListProps) {
                   </span>
                 ))}
               </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={() => handleActivate(issue.id)}
                 disabled={loadingId === issue.id}
                 style={{
-                  width: '100%', padding: '10px',
+                  flex: 1, padding: '10px',
                   background: loadingId === issue.id ? Colors.border : Colors.primary,
                   color: Colors.white, border: 'none', borderRadius: '8px',
                   fontSize: '14px', fontWeight: 700,
@@ -88,6 +102,20 @@ export default function AdminIssueList({ issues }: AdminIssueListProps) {
               >
                 {loadingId === issue.id ? '처리 중...' : '🚀 공개하기 (active)'}
               </button>
+              <button
+                onClick={() => handleDelete(issue.id)}
+                disabled={loadingId === issue.id}
+                style={{
+                  padding: '10px 16px',
+                  background: 'none', color: Colors.no,
+                  border: `1px solid ${Colors.no}`, borderRadius: '8px',
+                  fontSize: '14px', fontWeight: 700,
+                  cursor: loadingId === issue.id ? 'not-allowed' : 'pointer',
+                }}
+              >
+                삭제
+              </button>
+              </div>
             </div>
           ))}
         </div>
