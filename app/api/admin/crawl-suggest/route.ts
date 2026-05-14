@@ -146,15 +146,15 @@ function buildSystemPrompt(today: string) {
 - 게임 회사의 게임 관련 사업 계획도 제외
 
 [카테고리 균형 — 반드시 준수]
-총 30개 이상 제안하되, 아래 카테고리별 목표 수량을 채워주세요.
+총 15개 이상 제안하되, 아래 카테고리별 목표 수량을 채워주세요.
 
-- 정치(politics): 5~6개
-- 경제(economy): 5~6개 (게임 회사 주가·실적은 가능, 게임 자체는 제외)
-- 연예·엔터(entertainment): 5~6개
-- 스포츠(sports): 5~6개
-- 사회(social): 5~6개
-- IT·테크(tech): 3~4개 (게임 제외, AI·반도체·앱·서비스·플랫폼만)
-- 기타(etc): 1~2개
+- 정치(politics): 2~3개
+- 경제(economy): 2~3개 (게임 회사 주가·실적은 가능, 게임 자체는 제외)
+- 연예·엔터(entertainment): 2~3개
+- 스포츠(sports): 2~3개
+- 사회(social): 2~3개
+- IT·테크(tech): 1~2개 (게임 제외, AI·반도체·앱·서비스·플랫폼만)
+- 기타(etc): 0~1개
 
 resolution_rules는 간결하게 2~3문장으로 작성하세요.
 반드시 JSON 배열만 출력하고, 다른 텍스트나 마크다운 코드블록은 절대 포함하지 마세요.
@@ -189,7 +189,7 @@ async function callGemini(articleList: string, today: string): Promise<string> {
       systemInstruction: { parts: [{ text: buildSystemPrompt(today) }] },
       contents: [{
         role: 'user',
-        parts: [{ text: `오늘(${today}) 한국 커뮤니티 인기글 목록입니다. 게임 이슈는 제외하고 카테고리 균형을 맞춰 30개 이상 픽터 이슈를 JSON으로만 응답해주세요.\n\n${articleList}` }],
+        parts: [{ text: `오늘(${today}) 한국 커뮤니티 인기글 목록입니다. 게임 이슈는 제외하고 카테고리 균형을 맞춰 15개 이상 픽터 이슈를 JSON으로만 응답해주세요.\n\n${articleList}` }],
       }],
       generationConfig: {
         temperature: 0.3,
