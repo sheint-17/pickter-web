@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Colors } from '@/constants/colors'
 import { Issue, IssueCategory } from '@/types'
 import AdminIssueList from '@/components/admin/AdminIssueList'
+import AdminIssueEdit from '@/components/admin/AdminIssueEdit'
 import AiIssueSuggest from '@/components/admin/AiIssueSuggest'
 import AdminLogs from '@/components/admin/AdminLogs'
 import { createIssue, CreateIssueState, approveProposal, rejectProposal } from './actions'
@@ -249,7 +250,7 @@ function IssueCreateForm() {
 }
 
 // ─── 탭 타입 정의 ─────────────────────────────────────────
-type TabType = 'ai' | 'create' | 'settle' | 'review' | 'logs'
+type TabType = 'ai' | 'create' | 'settle' | 'edit' | 'review' | 'logs'
 
 export default function AdminTabs({
   issues,
@@ -263,7 +264,8 @@ export default function AdminTabs({
   const tabs: { key: TabType; label: string; badge?: number }[] = [
     { key: 'ai',     label: 'AI 제안' },
     { key: 'create', label: '이슈 개설' },
-    { key: 'settle', label: '이슈 정산' },
+    { key: 'settle', label: '이슈 관리' },
+    { key: 'edit',   label: '이슈 수정' },
     { key: 'review', label: '제안 검토', badge: proposals.length },
     { key: 'logs',   label: '로그' },
   ]
@@ -299,6 +301,7 @@ export default function AdminTabs({
       <div style={{ display: tab === 'ai'     ? 'block' : 'none' }}><AiIssueSuggest /></div>
       <div style={{ display: tab === 'create' ? 'block' : 'none' }}><IssueCreateForm /></div>
       <div style={{ display: tab === 'settle' ? 'block' : 'none' }}><AdminIssueList issues={issues} /></div>
+      <div style={{ display: tab === 'edit'   ? 'block' : 'none' }}><AdminIssueEdit issues={issues} /></div>
       <div style={{ display: tab === 'review' ? 'block' : 'none' }}><ProposalReviewList proposals={proposals} /></div>
       <div style={{ display: tab === 'logs'   ? 'block' : 'none' }}><AdminLogs /></div>
     </div>
