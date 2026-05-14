@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Trophy, CalendarCheck, LogOut, Lightbulb, Settings } from 'lucide-react'
+import { useAuthModal } from './AuthModalProvider'
 
 const categories = [
   { id: 'hot', label: '🔥 인기' },
@@ -26,17 +27,19 @@ const menuItems = [
 const TIER_ORDER = ['Unranked', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Grandmaster']
 
 export default function CategoryBar() {
-  const [open, setOpen]           = useState(false)
-  const [isMobile, setIsMobile]   = useState(false)
+  const [open, setOpen]             = useState(false)
+  const [isMobile, setIsMobile]     = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [tier, setTier]           = useState<string | null>(null)
-  const [isAdmin, setIsAdmin]     = useState(false)
-  const [showToast, setShowToast] = useState(false)
+  const [tier, setTier]             = useState<string | null>(null)
+  const [isAdmin, setIsAdmin]       = useState(false)
+  const [showToast, setShowToast]   = useState(false)
+  const [toastMsg, setToastMsg]     = useState('')
   const ref = useRef<HTMLDivElement>(null)
   const router       = useRouter()
   const pathname     = usePathname()
   const searchParams = useSearchParams()
   const activeCategory = searchParams.get('category') ?? 'hot'
+  const { openLogin } = useAuthModal()
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -89,14 +92,28 @@ export default function CategoryBar() {
     }
   }
 
+  const showToastMsg = (msg: string) => {
+    setToastMsg(msg)
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 3000)
+  }
+
   const handleProposeClick = () => {
     setOpen(false)
-    const canPropose = tier !== null && TIER_ORDER.indexOf(tier) >= TIER_ORDER.indexOf('Silver')
-    if (!canPropose) {
-      setShowToast(true)
-      setTimeout(() => setShowToast(false), 3000)
+
+    // 비로그인 → 로그인 유도
+    if (!isLoggedIn) {
+      openLogin()
       return
     }
+
+    // 로그인 됐지만 Silver 미만
+    const canPropose = tier !== null && TIER_ORDER.indexOf(tier) >= TIER_ORDER.indexOf('Silver')
+    if (!canPropose) {
+      showToastMsg('Silver 등급부터 이슈 제안이 가능해요')
+      return
+    }
+
     router.push('/propose')
   }
 
@@ -245,7 +262,7 @@ export default function CategoryBar() {
         )}
       </div>
 
-      {/* Silver 미만 토스트 */}
+      {/* 토스트 메시지 */}
       {showToast && (
         <div style={{
           position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
@@ -255,7 +272,7 @@ export default function CategoryBar() {
           boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
           whiteSpace: 'nowrap',
         }}>
-          Silver 등급부터 이슈 제안이 가능해요
+          {toastMsg}
         </div>
       )}
     </>
