@@ -37,7 +37,7 @@ export default async function AdminPage() {
     supabase
       .from('issues')
       .select('*, issue_options!issue_options_issue_id_fkey(*)')
-      .in('status', ['active', 'closed'])
+      .in('status', ['draft', 'active', 'closed'])
       .order('created_at', { ascending: false }),
     supabase
       .from('issue_proposals')
