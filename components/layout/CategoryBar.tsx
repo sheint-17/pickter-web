@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Trophy, CalendarCheck, Swords, LogOut, Lightbulb } from 'lucide-react'
+import { Trophy, CalendarCheck, LogOut, Lightbulb, Settings } from 'lucide-react'
 
 const categories = [
   { id: 'hot', label: '🔥 인기' },
@@ -19,21 +19,22 @@ const categories = [
 ]
 
 const menuItems = [
-  { icon: Trophy,        label: '랭킹',    href: '/ranking' },
-  { icon: CalendarCheck, label: '출석',    href: '/attendance' },
+  { icon: Trophy,        label: '랭킹', href: '/ranking' },
+  { icon: CalendarCheck, label: '출석', href: '/attendance' },
 ]
 
 const TIER_ORDER = ['Unranked', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Grandmaster']
 
 export default function CategoryBar() {
-  const [open, setOpen] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const [open, setOpen]           = useState(false)
+  const [isMobile, setIsMobile]   = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [tier, setTier] = useState<string | null>(null)
+  const [tier, setTier]           = useState<string | null>(null)
+  const [isAdmin, setIsAdmin]     = useState(false)
   const [showToast, setShowToast] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const router = useRouter()
-  const pathname = usePathname()
+  const router       = useRouter()
+  const pathname     = usePathname()
   const searchParams = useSearchParams()
   const activeCategory = searchParams.get('category') ?? 'hot'
 
@@ -48,11 +49,20 @@ export default function CategoryBar() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setIsLoggedIn(!!user)
       if (!user) return
-      supabase.from('users').select('tier').eq('id', user.id).single()
-        .then(({ data }) => { if (data) setTier(data.tier) })
+      supabase.from('users').select('tier, role').eq('id', user.id).single()
+        .then(({ data }) => {
+          if (data) {
+            setTier(data.tier)
+            setIsAdmin(data.role === 'admin')
+          }
+        })
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setIsLoggedIn(!!session)
+      if (!session) {
+        setIsAdmin(false)
+        setTier(null)
+      }
     })
     return () => subscription.unsubscribe()
   }, [])
@@ -140,14 +150,13 @@ export default function CategoryBar() {
           </div>
           {/* 페이드 아웃 */}
           <div style={{
-            position: 'absolute', right: 0, top: 0, bottom: 0,
-            width: '40px',
+            position: 'absolute', right: 0, top: 0, bottom: 0, width: '40px',
             background: 'linear-gradient(to right, transparent, white)',
             pointerEvents: 'none',
           }} />
         </div>
 
-        {/* 넓은 화면 */}
+        {/* 데스크탑 */}
         {!isMobile && (
           <>
             <div style={{ width: '1px', height: '20px', background: '#E5E7EB', flexShrink: 0 }} />
@@ -158,6 +167,8 @@ export default function CategoryBar() {
                   {label}
                 </Link>
               ))}
+
+              {/* 이슈 제안 */}
               <button
                 onClick={handleProposeClick}
                 style={{ ...menuPillStyle, color: '#7B2FBE', borderColor: '#D8B4FE' }}
@@ -167,6 +178,25 @@ export default function CategoryBar() {
                 <Lightbulb size={14} strokeWidth={2} />
                 이슈 제안
               </button>
+
+              {/* 관리자 메뉴 — admin role만 표시 */}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  style={{ ...menuPillStyle, textDecoration: 'none', color: '#555', borderColor: '#E5E7EB' }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background = '#F5F5F5'
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background = 'transparent'
+                  }}
+                >
+                  <Settings size={14} strokeWidth={2} />
+                  관리자
+                </Link>
+              )}
+
+              {/* 로그아웃 */}
               {isLoggedIn && (
                 <button
                   onClick={handleLogout}
@@ -182,7 +212,7 @@ export default function CategoryBar() {
           </>
         )}
 
-        {/* 좁은 화면: 랭킹/출석/이슈제안 아이콘만 표시 */}
+        {/* 모바일 */}
         {isMobile && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
             <Link href="/ranking" style={{ ...menuPillStyle, textDecoration: 'none', padding: '6px 10px' }}>
@@ -197,6 +227,15 @@ export default function CategoryBar() {
             >
               <Lightbulb size={14} strokeWidth={2} />
             </button>
+            {/* 모바일 관리자 아이콘 */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                style={{ ...menuPillStyle, textDecoration: 'none', padding: '6px 10px' }}
+              >
+                <Settings size={14} strokeWidth={2} />
+              </Link>
+            )}
           </div>
         )}
       </div>
@@ -211,7 +250,7 @@ export default function CategoryBar() {
           boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
           whiteSpace: 'nowrap',
         }}>
-          🥈 Silver 등급부터 이슈 제안이 가능해요
+          Silver 등급부터 이슈 제안이 가능해요
         </div>
       )}
     </>
