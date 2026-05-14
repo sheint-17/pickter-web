@@ -7,7 +7,6 @@ import { checkIn } from './actions'
 interface Props {
   checkedInToday: boolean
   streak: number
-  pointBalance: number
   last7Days: string[]
   attendedDates: string[]
 }
@@ -15,15 +14,13 @@ interface Props {
 export default function AttendanceClient({
   checkedInToday,
   streak: initialStreak,
-  pointBalance: initialBalance,
   last7Days,
   attendedDates: initialAttended,
 }: Props) {
   const [done, setDone] = useState(checkedInToday)
   const [streak, setStreak] = useState(initialStreak)
-  const [balance, setBalance] = useState(initialBalance)
   const [attended, setAttended] = useState(new Set(initialAttended))
-  const [reward, setReward] = useState<{ pointGiven: number; isWeekBonus: boolean } | null>(null)
+  const [reward, setReward] = useState<{ rpGiven: number; isWeekBonus: boolean } | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -32,12 +29,11 @@ export default function AttendanceClient({
   const handleCheckIn = () => {
     startTransition(async () => {
       const res = await checkIn()
-      if (res.success && res.pointGiven !== undefined && res.streak !== undefined) {
+      if (res.success && res.rpGiven !== undefined && res.streak !== undefined) {
         setDone(true)
         setStreak(res.streak)
-        setBalance(b => b + res.pointGiven!)
         setAttended(prev => new Set([...prev, today]))
-        setReward({ pointGiven: res.pointGiven!, isWeekBonus: res.isWeekBonus! })
+        setReward({ rpGiven: res.rpGiven!, isWeekBonus: res.isWeekBonus! })
       } else {
         setErrorMsg(res.error ?? '오류가 발생했어요')
       }
@@ -125,23 +121,8 @@ export default function AttendanceClient({
           fontSize: '12px', marginTop: '12px', marginBottom: 0,
           color: done ? 'rgba(255,255,255,0.7)' : Colors.textTertiary,
         }}>
-          7일 연속 출석 시 +500픽 보너스
+          7일 연속 출석 시 +5 RP 보너스
         </p>
-      </div>
-
-      {/* 포인트 잔액 */}
-      <div style={{
-        background: Colors.white, borderRadius: '16px',
-        padding: '16px 20px', marginBottom: '16px',
-        border: `1px solid ${Colors.border}`,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <span style={{ fontSize: '14px', color: Colors.textSecondary, fontWeight: 600 }}>
-          내 픽 잔액
-        </span>
-        <span style={{ fontSize: '20px', fontWeight: 800, color: Colors.primary }}>
-          {balance.toLocaleString()}P
-        </span>
       </div>
 
       {/* 보상 메시지 */}
@@ -157,8 +138,8 @@ export default function AttendanceClient({
           </p>
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: Colors.textSecondary }}>
             {reward.isWeekBonus
-              ? `+100픽 + 보너스 +500픽 = +${reward.pointGiven}픽 지급`
-              : `+${reward.pointGiven}픽 지급`}
+              ? `+1 RP + 보너스 +5 RP = +${reward.rpGiven} RP 지급`
+              : `+${reward.rpGiven} RP 지급`}
           </p>
         </div>
       )}
@@ -188,12 +169,12 @@ export default function AttendanceClient({
           transition: 'all 0.2s',
         }}
       >
-        {isPending ? '처리 중...' : done ? '오늘 출석 완료 ✓' : '출석하기 +100픽'}
+        {isPending ? '처리 중...' : done ? '오늘 출석 완료 ✓' : '출석하기 +1 RP'}
       </button>
 
       {!done && (
         <p style={{ textAlign: 'center', fontSize: '12px', color: Colors.textTertiary, marginTop: '12px' }}>
-          매일 자정 초기화 · 7일 연속 달성 시 500픽 추가 지급
+          매일 자정 초기화 · 7일 연속 달성 시 +5 RP 추가 지급
         </p>
       )}
 

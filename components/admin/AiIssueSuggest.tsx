@@ -21,6 +21,8 @@ interface Suggestion {
   options: Option[]
   resolution_rules: string
   lmsr_b: number
+  thumbnail_keyword: string
+  thumbnail_url: string | null
   source_url: string
   source_title: string
   reason: string
@@ -49,6 +51,7 @@ function SuggestionCard({
   const [draft, setDraft] = useState<Suggestion>({ ...item })
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+  const [thumbError, setThumbError] = useState(false)
 
   const updateOption = (i: number, label: string) => {
     setDraft(d => ({
@@ -70,7 +73,7 @@ function SuggestionCard({
     background: Colors.white,
     border: `1px solid ${Colors.border}`,
     borderRadius: '12px',
-    padding: '16px',
+    overflow: 'hidden',
     marginBottom: '12px',
   }
 
@@ -104,179 +107,225 @@ function SuggestionCard({
 
   return (
     <div style={cardStyle}>
-      {/* 헤더: 번호 + 출처 + 스킵 버튼 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-        <div>
-          <span style={{
-            fontSize: '11px', fontWeight: 700, color: Colors.primary,
-            background: Colors.primaryLight, borderRadius: '6px',
-            padding: '2px 8px', marginRight: '8px',
+      {/* 썸네일 */}
+      {draft.thumbnail_url && !thumbError ? (
+        <div style={{ position: 'relative', width: '100%', height: '120px' }}>
+          <img
+            src={draft.thumbnail_url}
+            alt={draft.title}
+            onError={() => setThumbError(true)}
+            style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }}
+          />
+          {/* 썸네일 키워드 오버레이 */}
+          <div style={{
+            position: 'absolute', bottom: '6px', right: '8px',
+            fontSize: '10px', color: 'rgba(255,255,255,0.8)',
+            background: 'rgba(0,0,0,0.4)', borderRadius: '4px', padding: '2px 6px',
           }}>
-            #{index + 1}
-          </span>
-          <a
-            href={item.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontSize: '11px', color: Colors.textTertiary, textDecoration: 'underline' }}
-          >
-            {item.source_title.length > 30 ? item.source_title.slice(0, 30) + '…' : item.source_title}
-          </a>
-        </div>
-        <button
-          onClick={onSkip}
-          style={{
-            fontSize: '12px', color: Colors.textTertiary,
-            background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px',
-          }}
-        >
-          건너뛰기
-        </button>
-      </div>
-
-      {/* AI 선택 이유 */}
-      <div style={{
-        fontSize: '12px', color: Colors.textSecondary,
-        background: Colors.background, borderRadius: '6px',
-        padding: '6px 10px', marginBottom: '12px',
-      }}>
-        {item.reason}
-      </div>
-
-      {/* 편집 / 보기 토글 */}
-      {editing ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div>
-            <p style={fieldLabelStyle}>이슈 제목</p>
-            <input
-              style={inputStyle}
-              value={draft.title}
-              onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
-              maxLength={100}
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <div>
-              <p style={fieldLabelStyle}>카테고리</p>
-              <select
-                style={{ ...inputStyle }}
-                value={draft.category}
-                onChange={e => setDraft(d => ({ ...d, category: e.target.value }))}
-              >
-                {CATEGORY_LIST.map(([val, ko]) => (
-                  <option key={val} value={val}>{ko}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <p style={fieldLabelStyle}>유동성 (lmsr_b)</p>
-              <select
-                style={{ ...inputStyle }}
-                value={draft.lmsr_b}
-                onChange={e => setDraft(d => ({ ...d, lmsr_b: Number(e.target.value) }))}
-              >
-                {[50, 100, 200].map(v => (
-                  <option key={v} value={v}>{v} ({v === 50 ? '소형' : v === 100 ? '중형' : '대형'})</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <p style={fieldLabelStyle}>선택지</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {draft.options.map((opt, i) => (
-                <input
-                  key={i}
-                  style={inputStyle}
-                  value={opt.label}
-                  onChange={e => updateOption(i, e.target.value)}
-                  placeholder={`선택지 ${i + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p style={fieldLabelStyle}>정산 규칙</p>
-            <textarea
-              style={textareaStyle}
-              value={draft.resolution_rules}
-              onChange={e => setDraft(d => ({ ...d, resolution_rules: e.target.value }))}
-            />
+            {draft.thumbnail_keyword}
           </div>
         </div>
       ) : (
-        <div>
-          <p style={{ fontSize: '15px', fontWeight: 700, color: Colors.textPrimary, margin: '0 0 8px' }}>
-            {draft.title}
-          </p>
-
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-            <span style={{
-              fontSize: '11px', background: Colors.background,
-              borderRadius: '6px', padding: '2px 8px', color: Colors.textSecondary,
-            }}>
-              {CATEGORY_KO[draft.category] ?? draft.category}
-            </span>
-            <span style={{
-              fontSize: '11px', background: Colors.background,
-              borderRadius: '6px', padding: '2px 8px', color: Colors.textSecondary,
-            }}>
-              {draft.issue_type === 'binary' ? '이진' : '다지선다'} · b={draft.lmsr_b}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
-            {draft.options.map((opt, i) => (
-              <span key={i} style={{
-                fontSize: '13px',
-                color: i === 0 ? Colors.yes : i === 1 ? Colors.no : Colors.textSecondary,
-                fontWeight: 600,
-                background: i === 0 ? '#E6FAF3' : i === 1 ? '#FFF0F3' : Colors.background,
-                borderRadius: '6px', padding: '3px 10px',
-              }}>
-                {opt.label}
-              </span>
-            ))}
-          </div>
-
-          {draft.resolution_rules && (
-            <p style={{ fontSize: '12px', color: Colors.textTertiary, margin: '0 0 4px' }}>
-              {draft.resolution_rules}
-            </p>
-          )}
+        /* 썸네일 없을 때 카테고리 컬러 플레이스홀더 */
+        <div style={{
+          width: '100%', height: '60px',
+          background: `linear-gradient(135deg, ${Colors.primaryLight}, ${Colors.border})`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span style={{ fontSize: '12px', color: Colors.textTertiary }}>
+            {draft.thumbnail_keyword ? `"${draft.thumbnail_keyword}" — 이미지 없음` : '썸네일 없음'}
+          </span>
         </div>
       )}
 
-      {/* 액션 버튼 */}
-      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-        <button
-          onClick={() => setEditing(e => !e)}
-          style={{
-            flex: 1, padding: '8px', borderRadius: '8px',
-            border: `1px solid ${Colors.border}`,
-            background: Colors.background,
-            fontSize: '13px', color: Colors.textSecondary,
-            cursor: 'pointer', fontWeight: 600,
-          }}
-        >
-          {editing ? '미리보기' : '수정'}
-        </button>
-        <button
-          onClick={handleRegister}
-          disabled={loading}
-          style={{
-            flex: 2, padding: '8px', borderRadius: '8px',
-            border: 'none',
-            background: loading ? Colors.border : Colors.primary,
-            fontSize: '13px', color: Colors.white,
-            cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700,
-          }}
-        >
-          {loading ? '등록 중…' : 'draft로 등록'}
-        </button>
+      <div style={{ padding: '16px' }}>
+        {/* 헤더: 번호 + 출처 + 스킵 버튼 */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+          <div>
+            <span style={{
+              fontSize: '11px', fontWeight: 700, color: Colors.primary,
+              background: Colors.primaryLight, borderRadius: '6px',
+              padding: '2px 8px', marginRight: '8px',
+            }}>
+              #{index + 1}
+            </span>
+            <a
+              href={item.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: '11px', color: Colors.textTertiary, textDecoration: 'underline' }}
+            >
+              {item.source_title.length > 30 ? item.source_title.slice(0, 30) + '…' : item.source_title}
+            </a>
+          </div>
+          <button
+            onClick={onSkip}
+            style={{
+              fontSize: '12px', color: Colors.textTertiary,
+              background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px',
+            }}
+          >
+            건너뛰기
+          </button>
+        </div>
+
+        {/* AI 선택 이유 */}
+        <div style={{
+          fontSize: '12px', color: Colors.textSecondary,
+          background: Colors.background, borderRadius: '6px',
+          padding: '6px 10px', marginBottom: '12px',
+        }}>
+          {item.reason}
+        </div>
+
+        {/* 편집 / 보기 토글 */}
+        {editing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div>
+              <p style={fieldLabelStyle}>이슈 제목</p>
+              <input
+                style={inputStyle}
+                value={draft.title}
+                onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
+                maxLength={100}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div>
+                <p style={fieldLabelStyle}>카테고리</p>
+                <select
+                  style={{ ...inputStyle }}
+                  value={draft.category}
+                  onChange={e => setDraft(d => ({ ...d, category: e.target.value }))}
+                >
+                  {CATEGORY_LIST.map(([val, ko]) => (
+                    <option key={val} value={val}>{ko}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <p style={fieldLabelStyle}>유동성 (lmsr_b)</p>
+                <select
+                  style={{ ...inputStyle }}
+                  value={draft.lmsr_b}
+                  onChange={e => setDraft(d => ({ ...d, lmsr_b: Number(e.target.value) }))}
+                >
+                  {[50, 100, 200].map(v => (
+                    <option key={v} value={v}>{v} ({v === 50 ? '소형' : v === 100 ? '중형' : '대형'})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <p style={fieldLabelStyle}>썸네일 키워드 (영어)</p>
+              <input
+                style={inputStyle}
+                value={draft.thumbnail_keyword ?? ''}
+                onChange={e => setDraft(d => ({ ...d, thumbnail_keyword: e.target.value, thumbnail_url: null }))}
+                placeholder="예: soccer player celebration"
+              />
+              <p style={{ fontSize: '11px', color: Colors.textTertiary, margin: '4px 0 0' }}>
+                키워드 변경 시 등록 후 썸네일이 자동 적용돼요
+              </p>
+            </div>
+
+            <div>
+              <p style={fieldLabelStyle}>선택지</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {draft.options.map((opt, i) => (
+                  <input
+                    key={i}
+                    style={inputStyle}
+                    value={opt.label}
+                    onChange={e => updateOption(i, e.target.value)}
+                    placeholder={`선택지 ${i + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p style={fieldLabelStyle}>정산 규칙</p>
+              <textarea
+                style={textareaStyle}
+                value={draft.resolution_rules}
+                onChange={e => setDraft(d => ({ ...d, resolution_rules: e.target.value }))}
+              />
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p style={{ fontSize: '15px', fontWeight: 700, color: Colors.textPrimary, margin: '0 0 8px' }}>
+              {draft.title}
+            </p>
+
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+              <span style={{
+                fontSize: '11px', background: Colors.background,
+                borderRadius: '6px', padding: '2px 8px', color: Colors.textSecondary,
+              }}>
+                {CATEGORY_KO[draft.category] ?? draft.category}
+              </span>
+              <span style={{
+                fontSize: '11px', background: Colors.background,
+                borderRadius: '6px', padding: '2px 8px', color: Colors.textSecondary,
+              }}>
+                {draft.issue_type === 'binary' ? '이진' : '다지선다'} · b={draft.lmsr_b}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+              {draft.options.map((opt, i) => (
+                <span key={i} style={{
+                  fontSize: '13px',
+                  color: i === 0 ? Colors.yes : i === 1 ? Colors.no : Colors.textSecondary,
+                  fontWeight: 600,
+                  background: i === 0 ? '#E6FAF3' : i === 1 ? '#FFF0F3' : Colors.background,
+                  borderRadius: '6px', padding: '3px 10px',
+                }}>
+                  {opt.label}
+                </span>
+              ))}
+            </div>
+
+            {draft.resolution_rules && (
+              <p style={{ fontSize: '12px', color: Colors.textTertiary, margin: '0 0 4px' }}>
+                {draft.resolution_rules}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* 액션 버튼 */}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+          <button
+            onClick={() => setEditing(e => !e)}
+            style={{
+              flex: 1, padding: '8px', borderRadius: '8px',
+              border: `1px solid ${Colors.border}`,
+              background: Colors.background,
+              fontSize: '13px', color: Colors.textSecondary,
+              cursor: 'pointer', fontWeight: 600,
+            }}
+          >
+            {editing ? '미리보기' : '수정'}
+          </button>
+          <button
+            onClick={handleRegister}
+            disabled={loading}
+            style={{
+              flex: 2, padding: '8px', borderRadius: '8px',
+              border: 'none',
+              background: loading ? Colors.border : Colors.primary,
+              fontSize: '13px', color: Colors.white,
+              cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700,
+            }}
+          >
+            {loading ? '등록 중…' : 'draft로 등록'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -322,6 +371,18 @@ export default function AiIssueSuggest() {
   const handleRegister = async (s: Suggestion) => {
     setRegisterError('')
     try {
+      // 썸네일 키워드가 수정됐고 thumbnail_url이 없는 경우 → Unsplash 재검색
+      let thumbnailUrl = s.thumbnail_url
+      if (!thumbnailUrl && s.thumbnail_keyword) {
+        const thumbRes = await fetch(
+          `/api/admin/unsplash-thumbnail?keyword=${encodeURIComponent(s.thumbnail_keyword)}`
+        )
+        if (thumbRes.ok) {
+          const thumbData = await thumbRes.json()
+          thumbnailUrl = thumbData.url ?? null
+        }
+      }
+
       const closesAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       const { data: issue, error: issueErr } = await supabase
         .from('issues')
@@ -332,6 +393,7 @@ export default function AiIssueSuggest() {
           issue_type: s.issue_type,
           lmsr_b: s.lmsr_b,
           resolution_rules: s.resolution_rules || null,
+          thumbnail_url: thumbnailUrl ?? null,
           closes_at: closesAt,
         })
         .select('id')
@@ -381,7 +443,7 @@ export default function AiIssueSuggest() {
       }}>
         <p style={{ fontSize: '13px', color: Colors.textSecondary, margin: '0 0 12px' }}>
           커뮤니티 최신 인기글을 수집해 AI가 픽터 이슈를 제안해요.<br />
-          이미 수집한 글은 자동으로 제외돼요.
+          이미 수집한 글은 자동으로 제외돼요. 썸네일은 Unsplash에서 자동으로 가져와요.
         </p>
         <button
           onClick={handleCrawl}

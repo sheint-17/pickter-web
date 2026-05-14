@@ -22,7 +22,7 @@ function calcStreak(records: { attended_at: string }[], today: string): number {
 export async function checkIn(): Promise<{
   success: boolean
   error?: string
-  pointGiven?: number
+  rpGiven?: number
   streak?: number
   isWeekBonus?: boolean
 }> {
@@ -47,9 +47,10 @@ export async function checkIn(): Promise<{
 
   const today = getKSTDate()
 
+  // 출석 기록 INSERT (rp_given: 하루 기본 1 RP)
   const { data: attendance, error: insertError } = await supabase
     .from('attendance')
-    .insert({ user_id: user.id, attended_at: today, point_given: 100 })
+    .insert({ user_id: user.id, attended_at: today, rp_given: 1 })
     .select()
     .single()
 
@@ -60,6 +61,7 @@ export async function checkIn(): Promise<{
     return { success: false, error: '출석 처리 중 오류가 발생했어요' }
   }
 
+  // 연속 출석 계산
   const { data: records } = await supabase
     .from('attendance')
     .select('attended_at')
@@ -69,40 +71,27 @@ export async function checkIn(): Promise<{
 
   const streak = calcStreak(records ?? [], today)
   const isWeekBonus = streak % 7 === 0
-  const pointGiven = isWeekBonus ? 600 : 100
+  // 하루 1 RP / 7일 연속 보너스 +5 RP → 총 6 RP
+  const rpGiven = isWeekBonus ? 6 : 1
 
   if (isWeekBonus) {
     await supabase
       .from('attendance')
-      .update({ point_given: pointGiven })
+      .update({ rp_given: rpGiven })
       .eq('id', attendance.id)
   }
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('point_balance')
-    .eq('id', user.id)
-    .single()
-
-  const newBalance = (profile?.point_balance ?? 0) + pointGiven
-
+  // rp_history INSERT → trg_update_rp_total 트리거가 자동으로 rp_total·tier 갱신
   await supabase
-    .from('users')
-    .update({ point_balance: newBalance, updated_at: new Date().toISOString() })
-    .eq('id', user.id)
-
-  await supabase
-    .from('point_history')
+    .from('rp_history')
     .insert({
       user_id: user.id,
-      amount: pointGiven,
+      amount: rpGiven,
       reason: isWeekBonus ? '출석 체크 (7일 연속 보너스)' : '출석 체크',
-      reference_id: attendance.id,
-      balance_after: newBalance,
     })
 
   revalidatePath('/attendance')
   revalidatePath('/mypage')
 
-  return { success: true, pointGiven, streak, isWeekBonus }
+  return { success: true, rpGiven, streak, isWeekBonus }
 }

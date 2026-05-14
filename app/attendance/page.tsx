@@ -43,7 +43,6 @@ export default async function AttendancePage() {
   const [
     { data: todayRecord },
     { data: records },
-    { data: profile },
   ] = await Promise.all([
     supabase
       .from('attendance')
@@ -57,11 +56,6 @@ export default async function AttendancePage() {
       .eq('user_id', user.id)
       .order('attended_at', { ascending: false })
       .limit(100),
-    supabase
-      .from('users')
-      .select('point_balance')
-      .eq('id', user.id)
-      .single(),
   ])
 
   const streak = calcStreak(records ?? [], today)
@@ -76,7 +70,6 @@ export default async function AttendancePage() {
     <AttendanceClient
       checkedInToday={!!todayRecord}
       streak={streak}
-      pointBalance={profile?.point_balance ?? 0}
       last7Days={last7Days}
       attendedDates={attendedDates}
     />

@@ -72,7 +72,6 @@ async function crawlSite(src: typeof SOURCES[0]) {
 }
 
 // ─── 잘린 JSON 복구 ──────────────────────────────────────
-// 문자열 내부의 { } 를 무시하고, 실제로 닫힌 마지막 객체 위치를 찾는다.
 function findLastCompleteObjectEnd(text: string): number {
   let inString = false
   let escape = false
@@ -90,7 +89,7 @@ function findLastCompleteObjectEnd(text: string): number {
     if (ch === '{') depth++
     else if (ch === '}') {
       depth--
-      if (depth === 0) lastCompleteEnd = i  // 배열 최상위 객체 하나 완성
+      if (depth === 0) lastCompleteEnd = i
     }
   }
 
@@ -100,17 +99,14 @@ function findLastCompleteObjectEnd(text: string): number {
 function recoverPartialJson(raw: string): unknown[] {
   const cleaned = raw.replace(/```json|```/g, '').trim()
 
-  // 1. 정상 파싱 시도
   try {
     return JSON.parse(cleaned)
   } catch { /* 잘린 경우 → 아래에서 복구 */ }
 
-  // 2. 배열 시작 확인
   const arrayStart = cleaned.indexOf('[')
   if (arrayStart === -1) return []
   const content = cleaned.slice(arrayStart)
 
-  // 3. 문자열 내부를 무시하고 마지막으로 완성된 객체 끝 위치 탐색
   const lastEnd = findLastCompleteObjectEnd(content)
   if (lastEnd === -1) return []
 
@@ -121,6 +117,30 @@ function recoverPartialJson(raw: string): unknown[] {
     return recovered
   } catch {
     return []
+  }
+}
+
+// ─── Unsplash 썸네일 검색 ────────────────────────────────
+async function fetchUnsplashThumbnail(keyword: string): Promise<string | null> {
+  const accessKey = process.env.UNSPLASH_ACCESS_KEY
+  if (!accessKey || !keyword) return null
+
+  try {
+    const res = await fetch(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(keyword)}&per_page=1&orientation=landscape`,
+      {
+        headers: { Authorization: `Client-ID ${accessKey}` },
+        signal: AbortSignal.timeout(5000),
+      }
+    )
+    if (!res.ok) return null
+
+    const data = await res.json()
+    const photo = data?.results?.[0]
+    // regular: 1080px 너비, 픽터 썸네일에 적합한 사이즈
+    return photo?.urls?.regular ?? null
+  } catch {
+    return null
   }
 }
 
@@ -168,6 +188,7 @@ resolution_rules는 간결하게 2~3문장으로 작성하세요.
     "options": [{"label": "선택지1", "order_index": 0}, {"label": "선택지2", "order_index": 1}],
     "resolution_rules": "정산 기준 (2~3문장, 날짜는 오늘 이후로)",
     "lmsr_b": 100,
+    "thumbnail_keyword": "Unsplash 이미지 검색용 영어 키워드 2~3단어 (예: soccer player celebration, korean election, stock market)",
     "source_url": "참고한 원문 URL",
     "source_title": "원문 제목",
     "reason": "픽터 이슈로 적합한 이유 한 줄"
@@ -175,7 +196,11 @@ resolution_rules는 간결하게 2~3문장으로 작성하세요.
 ]
 
 binary일 때 options: [{"label":"픽","order_index":0},{"label":"패스","order_index":1}]
-lmsr_b 기준: 소형(지역·마이너) = 50, 중형(일반) = 100, 대형(전국적 관심) = 200`
+lmsr_b 기준: 소형(지역·마이너) = 50, 중형(일반) = 100, 대형(전국적 관심) = 200
+thumbnail_keyword 가이드:
+- 사람 이름 대신 역할/직군으로 (예: "손흥민" → "soccer player", "이재명" → "korean politician")
+- 구체적이고 시각적인 단어 위주 (예: "baseball stadium crowd", "semiconductor chip technology")
+- 항상 영어로 작성`
 }
 
 async function callGemini(articleList: string, today: string): Promise<string> {
@@ -223,7 +248,6 @@ export async function POST() {
     }
   )
 
-  // 로그 저장 헬퍼
   const saveLog = async (
     level: 'info' | 'warn' | 'error',
     message: string,
@@ -262,7 +286,7 @@ export async function POST() {
     return NextResponse.json({ suggestions: [], message: '새로운 글이 없어요. 잠시 후 다시 시도해 주세요.' })
   }
 
-  // Gemini 호출 — 입력 글 최대 35개로 제한 (처리 시간 단축)
+  // Gemini 호출 — 입력 글 최대 35개로 제한
   const articleList = newArticles
     .slice(0, 35)
     .map((a, i) => `${i + 1}. [${a.sourceName}] ${a.title}\nURL: ${a.url}`)
@@ -278,9 +302,9 @@ export async function POST() {
   }
 
   // JSON 파싱 (잘려도 복구)
-  const suggestions = recoverPartialJson(rawText)
+  const rawSuggestions = recoverPartialJson(rawText) as Array<Record<string, unknown>>
 
-  if (suggestions.length === 0) {
+  if (rawSuggestions.length === 0) {
     await saveLog('error', 'Gemini 응답 파싱 완전 실패', { raw: rawText.slice(0, 500) })
     return NextResponse.json({ error: 'Gemini 응답 파싱 실패' }, { status: 500 })
   }
@@ -289,6 +313,17 @@ export async function POST() {
   const wasTruncated = (() => {
     try { JSON.parse(rawText.replace(/```json|```/g, '').trim()); return false } catch { return true }
   })()
+
+  // Unsplash 썸네일 병렬 조회 (UNSPLASH_ACCESS_KEY 없으면 전부 null)
+  const thumbnailUrls = await Promise.all(
+    rawSuggestions.map(s => fetchUnsplashThumbnail((s.thumbnail_keyword as string) ?? ''))
+  )
+
+  // 썸네일 URL을 각 제안에 주입
+  const suggestions = rawSuggestions.map((s, i) => ({
+    ...s,
+    thumbnail_url: thumbnailUrls[i] ?? null,
+  }))
 
   // 크롤링 URL 이력 저장
   await supabase.from('crawled_articles').upsert(
@@ -304,7 +339,9 @@ export async function POST() {
   await supabase.from('crawled_articles').delete()
     .lt('crawled_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
 
-  // 성공 로그 저장
+  // 썸네일 성공률 집계 (로그용)
+  const thumbnailSuccessCount = thumbnailUrls.filter(Boolean).length
+
   await saveLog(
     wasTruncated ? 'warn' : 'info',
     wasTruncated
@@ -316,6 +353,8 @@ export async function POST() {
       skipped: existingUrls.size,
       suggested: suggestions.length,
       truncated: wasTruncated,
+      thumbnail_success: thumbnailSuccessCount,
+      thumbnail_fail: suggestions.length - thumbnailSuccessCount,
     }
   )
 
