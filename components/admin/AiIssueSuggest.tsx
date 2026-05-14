@@ -380,8 +380,7 @@ export default function AiIssueSuggest() {
         marginBottom: '16px',
       }}>
         <p style={{ fontSize: '13px', color: Colors.textSecondary, margin: '0 0 12px' }}>
-          루리웹 · 인벤 · 뽐뿌 · 클리앙 · 인스티즈 · 보배드림 · 웃긴대학<br />
-          7개 사이트 최신 인기글을 수집해 AI가 픽터 이슈를 제안해요.<br />
+          커뮤니티 최신 인기글을 수집해 AI가 픽터 이슈를 제안해요.<br />
           이미 수집한 글은 자동으로 제외돼요.
         </p>
         <button
