@@ -6,12 +6,14 @@ export const maxDuration = 60
 
 // ─── 크롤링 대상 사이트 ───────────────────────────────────
 const SOURCES = [
-  { id: 'ruliweb',    name: '루리웹',   url: 'https://bbs.ruliweb.com/best/humor_only',                             encoding: 'utf-8',  maxItems: 10 },
-  { id: 'ppomppu',    name: '뽐뿌',     url: 'https://www.ppomppu.co.kr/hot.php',                                   encoding: 'euc-kr', maxItems: 10 },
-  { id: 'clien',      name: '클리앙',   url: 'https://www.clien.net/service/group/board_all?&od=T33&category=0',   encoding: 'utf-8',  maxItems: 5  },
-  { id: 'instiz',     name: '인스티즈', url: 'https://www.instiz.net/hot.htm',                                      encoding: 'utf-8',  maxItems: 5  },
-  { id: 'bobaedream', name: '보배드림', url: 'https://www.bobaedream.co.kr/list?code=best',                         encoding: 'utf-8',  maxItems: 5  },
-  { id: 'humoruniv',  name: '웃긴대학', url: 'https://m.humoruniv.com/board/list.html?table=pds&st=day',            encoding: 'euc-kr', maxItems: 5  },
+  { id: 'dcinside',   name: '디시인사이드', url: 'https://m.dcinside.com/board/hit',                                      encoding: 'utf-8',  maxItems: 8  },
+  { id: 'fmkorea',    name: '에펨코리아',   url: 'https://www.fmkorea.com/best',                                          encoding: 'utf-8',  maxItems: 8  },
+  { id: 'ruliweb',    name: '루리웹',       url: 'https://bbs.ruliweb.com/best/humor_only',                               encoding: 'utf-8',  maxItems: 8  },
+  { id: 'ppomppu',    name: '뽐뿌',         url: 'https://www.ppomppu.co.kr/hot.php',                                     encoding: 'euc-kr', maxItems: 5  },
+  { id: 'clien',      name: '클리앙',       url: 'https://www.clien.net/service/group/board_all?&od=T33&category=0',     encoding: 'utf-8',  maxItems: 5  },
+  { id: 'instiz',     name: '인스티즈',     url: 'https://www.instiz.net/hot.htm',                                        encoding: 'utf-8',  maxItems: 5  },
+  { id: 'bobaedream', name: '보배드림',     url: 'https://www.bobaedream.co.kr/list?code=best',                           encoding: 'utf-8',  maxItems: 5  },
+  { id: 'humoruniv',  name: '웃긴대학',     url: 'https://m.humoruniv.com/board/list.html?table=pds&st=day',              encoding: 'euc-kr', maxItems: 5  },
 ]
 
 // ─── HTML → 링크+제목 추출 ────────────────────────────────
@@ -196,7 +198,7 @@ async function callGemini(articleList: string, today: string): Promise<string> {
         responseMimeType: 'application/json',
       },
     }),
-    signal: AbortSignal.timeout(45000),
+    signal: AbortSignal.timeout(55000),
   })
 
   if (!res.ok) {
@@ -261,8 +263,9 @@ export async function POST() {
     return NextResponse.json({ suggestions: [], message: '새로운 글이 없어요. 잠시 후 다시 시도해 주세요.' })
   }
 
-  // Gemini 호출
+  // Gemini 호출 — 입력 글 최대 35개로 제한 (처리 시간 단축)
   const articleList = newArticles
+    .slice(0, 35)
     .map((a, i) => `${i + 1}. [${a.sourceName}] ${a.title}\nURL: ${a.url}`)
     .join('\n\n')
 
