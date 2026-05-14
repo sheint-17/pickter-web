@@ -168,16 +168,18 @@ export default function CategoryBar() {
                 </Link>
               ))}
 
-              {/* 이슈 제안 */}
-              <button
-                onClick={handleProposeClick}
-                style={{ ...menuPillStyle, color: '#7B2FBE', borderColor: '#D8B4FE' }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#F5F0FF')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                <Lightbulb size={14} strokeWidth={2} />
-                이슈 제안
-              </button>
+              {/* 이슈 제안 — 관리자는 숨김 */}
+              {!isAdmin && (
+                <button
+                  onClick={handleProposeClick}
+                  style={{ ...menuPillStyle, color: '#7B2FBE', borderColor: '#D8B4FE' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#F5F0FF')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <Lightbulb size={14} strokeWidth={2} />
+                  이슈 제안
+                </button>
+              )}
 
               {/* 관리자 메뉴 — admin role만 표시 */}
               {isAdmin && (
@@ -221,12 +223,15 @@ export default function CategoryBar() {
             <Link href="/attendance" style={{ ...menuPillStyle, textDecoration: 'none', padding: '6px 10px' }}>
               <CalendarCheck size={14} strokeWidth={2} />
             </Link>
-            <button
-              onClick={handleProposeClick}
-              style={{ ...menuPillStyle, color: '#7B2FBE', borderColor: '#D8B4FE', padding: '6px 10px' }}
-            >
-              <Lightbulb size={14} strokeWidth={2} />
-            </button>
+            {/* 이슈 제안 — 관리자는 숨김 */}
+            {!isAdmin && (
+              <button
+                onClick={handleProposeClick}
+                style={{ ...menuPillStyle, color: '#7B2FBE', borderColor: '#D8B4FE', padding: '6px 10px' }}
+              >
+                <Lightbulb size={14} strokeWidth={2} />
+              </button>
+            )}
             {/* 모바일 관리자 아이콘 */}
             {isAdmin && (
               <Link
