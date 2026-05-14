@@ -6,13 +6,12 @@ export const maxDuration = 60
 
 // ─── 크롤링 대상 사이트 ───────────────────────────────────
 const SOURCES = [
-  { id: 'ruliweb',    name: '루리웹',   url: 'https://bbs.ruliweb.com/best/humor_only',                              encoding: 'utf-8'  },
-  { id: 'inven',      name: '인벤',     url: 'https://www.inven.co.kr/webzine/news/?hotnews=1',                      encoding: 'utf-8'  },
-  { id: 'ppomppu',   name: '뽐뿌',     url: 'https://www.ppomppu.co.kr/hot.php',                                    encoding: 'euc-kr' },
-  { id: 'clien',     name: '클리앙',   url: 'https://www.clien.net/service/group/clien_all?od=T33',                 encoding: 'utf-8'  },
-  { id: 'instiz',    name: '인스티즈', url: 'https://www.instiz.net/pt?category=1',                                           encoding: 'utf-8'  },
-  { id: 'bobaedream',name: '보배드림', url: 'https://www.bobaedream.co.kr/board/bulletin/list.php?code=best&vdate=',encoding: 'utf-8'  },
-  { id: 'humoruniv', name: '웃긴대학', url: 'https://web.humoruniv.com/board/humor/list.html?table=pds&best=Y',     encoding: 'euc-kr' },
+  { id: 'ruliweb',    name: '루리웹',   url: 'https://bbs.ruliweb.com/best/humor_only',                             encoding: 'utf-8',  maxItems: 10 },
+  { id: 'ppomppu',    name: '뽐뿌',     url: 'https://www.ppomppu.co.kr/hot.php',                                   encoding: 'euc-kr', maxItems: 10 },
+  { id: 'clien',      name: '클리앙',   url: 'https://www.clien.net/service/group/board_all?&od=T33&category=0',   encoding: 'utf-8',  maxItems: 5  },
+  { id: 'instiz',     name: '인스티즈', url: 'https://www.instiz.net/hot.htm',                                      encoding: 'utf-8',  maxItems: 5  },
+  { id: 'bobaedream', name: '보배드림', url: 'https://www.bobaedream.co.kr/list?code=best',                         encoding: 'utf-8',  maxItems: 5  },
+  { id: 'humoruniv',  name: '웃긴대학', url: 'https://m.humoruniv.com/board/list.html?table=pds&st=day',            encoding: 'euc-kr', maxItems: 5  },
 ]
 
 // ─── HTML → 링크+제목 추출 ────────────────────────────────
@@ -60,7 +59,7 @@ async function crawlSite(src: typeof SOURCES[0]) {
       ? new TextDecoder('euc-kr').decode(await res.arrayBuffer())
       : await res.text()
 
-    return extractArticles(html, src.url).map(a => ({
+    return extractArticles(html, src.url).slice(0, src.maxItems).map(a => ({
       ...a,
       source: src.id,
       sourceName: src.name,
