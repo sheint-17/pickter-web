@@ -62,15 +62,15 @@ export default function PickterGuide() {
             </div>
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-              <span style={{ fontSize: '18px', flexShrink: 0 }}>💰</span>
+              <span style={{ fontSize: '18px', flexShrink: 0 }}>🎟️</span>
               <div>
                 <p style={{ fontSize: '13px', fontWeight: 700, color: Colors.textPrimary, margin: '0 0 2px' }}>
-                  확률이 낮을수록 수익이 커요
+                  포인트 → 픽켓으로 변환돼요
                 </p>
                 <p style={{ fontSize: '12px', color: Colors.textSecondary, margin: 0, lineHeight: 1.6 }}>
-                  100픽 투입 시 예상 수령액 = 100 ÷ 현재 확률
+                  포인트를 넣으면 픽켓을 받아요. 확률이 낮을수록 같은 포인트로 픽켓을 더 많이 받아요.
                   <br />
-                  예) 확률 50% → 맞추면 200픽 / 확률 25% → 맞추면 400픽
+                  예) 확률 50% → 100P로 픽켓 200개 / 확률 25% → 100P로 픽켓 400개
                 </p>
               </div>
             </div>
@@ -79,11 +79,12 @@ export default function PickterGuide() {
               <span style={{ fontSize: '18px', flexShrink: 0 }}>🏆</span>
               <div>
                 <p style={{ fontSize: '13px', fontWeight: 700, color: Colors.textPrimary, margin: '0 0 2px' }}>
-                  승자가 패자의 픽을 나눠가져요
+                  정답 시 픽켓 1개 = 1포인트
                 </p>
                 <p style={{ fontSize: '12px', color: Colors.textSecondary, margin: 0, lineHeight: 1.6 }}>
-                  틀린 사람들의 픽이 맞춘 사람들에게 분배돼요.
-                  최종 수익은 총 참여자 수에 따라 달라질 수 있어요.
+                  정답이 확정되면 픽켓 1개당 1포인트를 받아요. 픽켓이 많을수록 더 많이 받아요.
+                  <br />
+                  오답이면 픽켓은 0포인트가 돼요.
                 </p>
               </div>
             </div>
@@ -95,7 +96,7 @@ export default function PickterGuide() {
                   정산 전에 매도할 수 있어요
                 </p>
                 <p style={{ fontSize: '12px', color: Colors.textSecondary, margin: 0, lineHeight: 1.6 }}>
-                  확률이 올랐을 때 팔면 수익, 내렸을 때 팔면 손절이에요.
+                  확률이 올랐을 때 팔면 수익 (픽켓 × 현재 확률), 내렸을 때 팔면 손절이에요.
                   마감 1시간 전부터는 매도만 가능해요.
                 </p>
               </div>

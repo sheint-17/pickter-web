@@ -32,8 +32,8 @@ function calcBuyCost(currentShares: number[], optionIdx: number, deltaShares: nu
   return after - before
 }
 
-// 픽을 입력했을 때 실제로 받을 수 있는 티켓 수 역산 (이진 탐색)
-function calcTicketsFromPoints(currentShares: number[], optionIdx: number, points: number, b: number): number {
+// 포인트를 입력했을 때 받을 수 있는 픽켓 수 역산 (이진 탐색)
+function calcPicketsFromPoints(currentShares: number[], optionIdx: number, points: number, b: number): number {
   let lo = 0, hi = points * 10
   for (let i = 0; i < 64; i++) {
     const mid = (lo + hi) / 2
@@ -142,21 +142,22 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
     if (!pts || pts <= 0) return null
 
     if (mode === 'buy') {
-      const estTickets = calcTicketsFromPoints(currentShares, selectedOptionIdx, pts, lmsrB)
-      const priceBefore = selectedOption.price
-      const priceAfter = calcPriceAfter(currentShares, selectedOptionIdx, estTickets, lmsrB)
+      // LMSR 기준 픽켓 수량 계산
+      const estPickets = calcPicketsFromPoints(currentShares, selectedOptionIdx, pts, lmsrB)
+      const priceBefore = prices[selectedOption.id] ?? selectedOption.price
+      const priceAfter = calcPriceAfter(currentShares, selectedOptionIdx, estPickets, lmsrB)
       const priceDiff = Math.round((priceAfter - priceBefore) * 100)
       const isHighImpact = Math.abs(priceDiff) >= 5
 
-      // 제로섬 기준 예상 수령액: 투입 픽 / 현재 확률
-      const estPayout = Math.floor(pts / priceBefore)
+      // 픽켓 수량 × 1포인트 = 정답 시 수령액
+      const estPayout = Math.floor(estPickets)
       const profit = estPayout - pts
 
-      return { mode: 'buy' as const, estPayout, profit, priceBefore: Math.round(priceBefore * 100), priceAfter: Math.round(priceAfter * 100), priceDiff, isHighImpact }
+      return { mode: 'buy' as const, estPickets: Math.floor(estPickets), estPayout, profit, priceBefore: Math.round(priceBefore * 100), priceAfter: Math.round(priceAfter * 100), priceDiff, isHighImpact }
     } else {
-      // 매도: 보유 티켓의 현재 가치 (투입 픽 × 현재 확률 / 평균 매수 확률)
-      const avgPrice = selectedTicket?.avg_price ?? selectedOption.price
-      const estReturn = Math.round(pts * (selectedOption.price / avgPrice))
+      // 매도: 픽켓 수량 × 현재 확률
+      const currentPrice = prices[selectedOption.id] ?? selectedOption.price
+      const estReturn = Math.floor(pts * currentPrice)
       return { mode: 'sell' as const, estReturn }
     }
   })()
@@ -234,23 +235,24 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
 
       {/* 매도 모드 - 보유 정보 */}
       {mode === 'sell' && selectedOption && selectedTicket && (() => {
-        const avgPrice = Number(selectedTicket.avg_price)
+        const heldPickets = Math.floor(Number(selectedTicket.quantity))
         const currentPrice = prices[selectedOption.id] ?? Number(selectedOption.price)
-        const totalInvested = Math.round(avgPrice * Number(selectedTicket.quantity))
-        const currentValue = Math.floor((totalInvested * currentPrice) / avgPrice)
-        const pnl = currentValue - totalInvested
+        const avgPrice = Number(selectedTicket.avg_price)
+        const currentValue = Math.floor(heldPickets * currentPrice)
+        const invested = Math.round(avgPrice * heldPickets)
+        const pnl = currentValue - invested
         return (
           <div style={{ background: Colors.primaryLight, borderRadius: '10px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: Colors.primary }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <span>투입 픽</span>
-              <span style={{ fontWeight: 700 }}>{totalInvested.toLocaleString()}P</span>
+              <span>보유 픽켓</span>
+              <span style={{ fontWeight: 700 }}>{heldPickets.toLocaleString()}개</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
               <span>매수 시 확률</span>
               <span style={{ fontWeight: 700 }}>{Math.round(avgPrice * 100)}%</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>지금 파는 경우</span>
+              <span>전량 매도 시</span>
               <span style={{ fontWeight: 700, color: pnl >= 0 ? Colors.yes : Colors.no }}>
                 {currentValue.toLocaleString()}P ({pnl >= 0 ? '+' : ''}{pnl.toLocaleString()}P)
               </span>
@@ -262,7 +264,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
       {/* 금액 입력 */}
       <div style={{ marginBottom: '8px' }}>
         <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
-          placeholder={mode === 'buy' ? '투자할 픽(P) 입력' : '매도할 픽(P) 입력 (투입 픽 기준)'}
+          placeholder={mode === 'buy' ? '투자할 포인트(P) 입력' : '매도할 픽켓 수량 입력'}
           style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '16px', boxSizing: 'border-box', outline: 'none' }} />
       </div>
 
@@ -286,7 +288,11 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
           {slippagePreview.mode === 'buy' ? (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>맞추면 받는 픽</span>
+                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>받는 픽켓</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.textPrimary }}>{slippagePreview.estPickets.toLocaleString()}개</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>맞추면 받는 포인트</span>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.textPrimary }}>{slippagePreview.estPayout.toLocaleString()}P</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
