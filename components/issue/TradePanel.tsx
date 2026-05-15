@@ -69,23 +69,43 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
   const selectedOptionIdx = sorted.findIndex(o => o.id === selectedId)
   const selectedTicket = tickets.find(t => t.option_id === selectedId)
 
-  const currentShares = sorted.map(o => o.shares ?? 0)
+  const currentShares = sorted.map(o => Number(o.shares) ?? 0)
+
+  async function fetchOptions() {
+    const { data } = await supabase
+      .from('issue_options')
+      .select('*')
+      .eq('issue_id', issueId)
+      .order('order_index', { ascending: true })
+    if (data) setOptions(data)
+  }
 
   async function fetchUserData() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const [{ data: userData }, { data: ticketData }, { data: optionData }] = await Promise.all([
+    const [{ data: userData }, { data: ticketData }] = await Promise.all([
       supabase.from('users').select('point_balance').eq('id', user.id).single(),
       supabase.from('tickets').select('*').eq('user_id', user.id).eq('issue_id', issueId),
-      supabase.from('issue_options').select('*').eq('issue_id', issueId).order('order_index', { ascending: true }),
     ])
     if (userData) setBalance(userData.point_balance)
     if (ticketData) setTickets(ticketData)
-    if (optionData) setOptions(optionData)
   }
 
   useEffect(() => {
     fetchUserData()
+    fetchOptions()
+
+    // issue_options 실시간 구독
+    const channel = supabase
+      .channel(`trade-panel-${issueId}-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'issue_options', filter: `issue_id=eq.${issueId}` },
+        () => { fetchOptions() }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
   async function handleTrade() {
