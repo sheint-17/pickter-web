@@ -1,7 +1,7 @@
 // components/issue/TradePanel.tsx
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Colors } from '@/constants/colors'
@@ -71,8 +71,6 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
 
   const currentShares = sorted.map(o => Number(o.shares) ?? 0)
 
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
-
   async function fetchOptions() {
     const { data } = await supabase
       .from('issue_options')
@@ -96,26 +94,6 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
   useEffect(() => {
     fetchUserData()
     fetchOptions()
-
-    // 기존 채널 정리 후 새로 구독
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current)
-    }
-    channelRef.current = supabase
-      .channel(`trade-options-${issueId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'issue_options', filter: `issue_id=eq.${issueId}` },
-        () => { fetchOptions() }
-      )
-      .subscribe()
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
-        channelRef.current = null
-      }
-    }
   }, [])
 
   async function handleTrade() {

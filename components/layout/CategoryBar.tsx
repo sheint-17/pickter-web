@@ -98,6 +98,15 @@ export default function CategoryBar() {
     setTimeout(() => setShowToast(false), 3000)
   }
 
+  const handleAttendanceClick = () => {
+    setOpen(false)
+    if (!isLoggedIn) {
+      openLogin()
+      return
+    }
+    router.push('/attendance')
+  }
+
   const handleProposeClick = () => {
     setOpen(false)
 
@@ -178,12 +187,22 @@ export default function CategoryBar() {
           <>
             <div style={{ width: '1px', height: '20px', background: '#E5E7EB', flexShrink: 0 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-              {menuItems.map(({ icon: Icon, label, href }) => (
-                <Link key={href} href={href} style={{ ...menuPillStyle, textDecoration: 'none' }}>
-                  <Icon size={14} strokeWidth={2} />
-                  {label}
-                </Link>
-              ))}
+              {menuItems.map(({ icon: Icon, label, href }) => {
+                if (href === '/attendance') {
+                  return (
+                    <button key={href} onClick={handleAttendanceClick} style={{ ...menuPillStyle }}>
+                      <Icon size={14} strokeWidth={2} />
+                      {label}
+                    </button>
+                  )
+                }
+                return (
+                  <Link key={href} href={href} style={{ ...menuPillStyle, textDecoration: 'none' }}>
+                    <Icon size={14} strokeWidth={2} />
+                    {label}
+                  </Link>
+                )
+              })}
 
               {/* 이슈 제안 — 관리자는 숨김 */}
               {!isAdmin && (
@@ -237,9 +256,9 @@ export default function CategoryBar() {
             <Link href="/ranking" style={{ ...menuPillStyle, textDecoration: 'none', padding: '6px 10px' }}>
               <Trophy size={14} strokeWidth={2} />
             </Link>
-            <Link href="/attendance" style={{ ...menuPillStyle, textDecoration: 'none', padding: '6px 10px' }}>
+            <button onClick={handleAttendanceClick} style={{ ...menuPillStyle, textDecoration: 'none', padding: '6px 10px' }}>
               <CalendarCheck size={14} strokeWidth={2} />
-            </Link>
+            </button>
             {/* 이슈 제안 — 관리자는 숨김 */}
             {!isAdmin && (
               <button

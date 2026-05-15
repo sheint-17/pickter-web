@@ -1,7 +1,7 @@
 // components/issue/BinaryProbBar.tsx
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface BinaryProbBarProps {
@@ -16,36 +16,25 @@ interface BinaryProbBarProps {
 export default function BinaryProbBar({
   issueId, yesOptionId, noOptionId, yesLabel = '픽', noLabel = '패스', initialYesPrice
 }: BinaryProbBarProps) {
-  const noPercent0 = Math.round((1 - Number(initialYesPrice)) * 100)
-  const [noPercent, setNoPercent] = useState(noPercent0)
+  const [noPercent, setNoPercent] = useState(Math.round((1 - Number(initialYesPrice)) * 100))
   const yesPercent = 100 - noPercent
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+
+  const fetchPrice = useCallback(async () => {
+    const { data } = await supabase
+      .from('issue_options')
+      .select('id, price')
+      .eq('issue_id', issueId)
+    if (!data) return
+    const noOpt = data.find(o => o.id === noOptionId)
+    if (noOpt) setNoPercent(Math.round(Number(noOpt.price) * 100))
+  }, [issueId, noOptionId])
 
   useEffect(() => {
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current)
-    }
-    channelRef.current = supabase
-      .channel(`prob-bar-${issueId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'issue_options', filter: `issue_id=eq.${issueId}` },
-        (payload) => {
-          const updated = payload.new as { id: string; price: number }
-          if (updated.id === noOptionId) {
-            setNoPercent(Math.round(Number(updated.price) * 100))
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
-        channelRef.current = null
-      }
-    }
-  }, [issueId, noOptionId])
+    fetchPrice()
+    // 30초마다 폴링 (실시간 구독 대체)
+    const interval = setInterval(fetchPrice, 30000)
+    return () => clearInterval(interval)
+  }, [fetchPrice])
 
   return (
     <div>
