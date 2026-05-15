@@ -37,6 +37,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
   const { data: issue } = await supabase
     .from('issues')
     .select('*, issue_options!issue_options_issue_id_fkey(*)')
+    .order('order_index', { referencedTable: 'issue_options', ascending: true })
     .eq('id', id)
     .single() as { data: (Issue & { resolution_rules?: string | null }) | null }
 
