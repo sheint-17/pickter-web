@@ -41,7 +41,8 @@ export async function GET(request: Request) {
     .eq('id', user.id)
     .single()
 
-  if (profile?.nickname?.startsWith('u_')) {
+  // profile이 null이면 트리거 지연 가능성 → 온보딩으로 보냄
+  if (!profile || profile?.nickname?.startsWith('u_')) {
     const onboardingResponse = NextResponse.redirect(`${origin}/onboarding`)
     // 쿠키를 온보딩 response에도 동일하게 심기
     response.cookies.getAll().forEach(cookie => {
