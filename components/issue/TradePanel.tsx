@@ -221,7 +221,9 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {mode === 'sell' && ticket && (
-                  <span style={{ fontSize: '11px', opacity: 0.85 }}>보유 {Math.floor(ticket.quantity)}장</span>
+                  <span style={{ fontSize: '11px', opacity: 0.85 }}>
+                    {Math.round(Number(ticket.avg_price) * 100)}% 매수
+                  </span>
                 )}
                 <span style={{ fontSize: '16px', fontWeight: 800 }}>{percent}%</span>
               </div>
@@ -230,17 +232,37 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
         })}
       </div>
 
-      {/* 매도 모드 - 보유 티켓 정보 */}
-      {mode === 'sell' && selectedOption && selectedTicket && (
-        <div style={{ background: Colors.primaryLight, borderRadius: '10px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: Colors.primary }}>
-          보유 티켓: {Math.floor(selectedTicket.quantity)}장 · 평균 매수가: {Math.round(selectedTicket.avg_price * 100)}P · 현재가: {Math.round(selectedOption.price * 100)}P
-        </div>
-      )}
+      {/* 매도 모드 - 보유 정보 */}
+      {mode === 'sell' && selectedOption && selectedTicket && (() => {
+        const avgPrice = Number(selectedTicket.avg_price)
+        const currentPrice = prices[selectedOption.id] ?? Number(selectedOption.price)
+        const totalInvested = Math.round(avgPrice * Number(selectedTicket.quantity))
+        const currentValue = Math.floor((totalInvested * currentPrice) / avgPrice)
+        const pnl = currentValue - totalInvested
+        return (
+          <div style={{ background: Colors.primaryLight, borderRadius: '10px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: Colors.primary }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span>투입 픽</span>
+              <span style={{ fontWeight: 700 }}>{totalInvested.toLocaleString()}P</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span>매수 시 확률</span>
+              <span style={{ fontWeight: 700 }}>{Math.round(avgPrice * 100)}%</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>지금 파는 경우</span>
+              <span style={{ fontWeight: 700, color: pnl >= 0 ? Colors.yes : Colors.no }}>
+                {currentValue.toLocaleString()}P ({pnl >= 0 ? '+' : ''}{pnl.toLocaleString()}P)
+              </span>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* 금액 입력 */}
       <div style={{ marginBottom: '8px' }}>
         <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
-          placeholder="투자할 픽(P) 입력"
+          placeholder={mode === 'buy' ? '투자할 픽(P) 입력' : '매도할 픽(P) 입력 (투입 픽 기준)'}
           style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '16px', boxSizing: 'border-box', outline: 'none' }} />
       </div>
 
