@@ -270,10 +270,10 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
 
       {/* 빠른 입력 */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-        {[100, 500, 1000].map(v => (
+        {(mode === 'buy' ? [10, 50, 100] : [10, 50, 100]).map(v => (
           <button key={v} onClick={() => setAmount(String(parseInt(amount || '0') + v))}
             style={{ flex: 1, padding: '6px 12px', background: '#F9F9F9', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', color: Colors.textSecondary }}>
-            +{v.toLocaleString()}P
+            +{v.toLocaleString()}{mode === 'buy' ? 'P' : '개'}
           </button>
         ))}
       </div>
@@ -305,7 +305,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
                   {slippagePreview.priceBefore}% → {slippagePreview.priceAfter}%
                   {' '}
                   <span style={{ color: slippagePreview.priceDiff > 0 ? Colors.yes : Colors.no }}>
-                    ({slippagePreview.priceDiff > 0 ? '+' : ''}{slippagePreview.priceDiff}%p)
+                    ({slippagePreview.priceDiff > 0 ? '+' : ''}{slippagePreview.priceDiff}%)
                   </span>
                 </span>
               </div>
