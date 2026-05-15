@@ -12,6 +12,7 @@ import PriceChart from '@/components/issue/PriceChart'
 import CommunityTabs from '@/components/issue/CommunityTabs'
 import { ShareButton } from '@/components/issue/ShareButton'
 import ResolutionRules from '@/components/issue/ResolutionRules'
+import BinaryProbBar from '@/components/issue/BinaryProbBar'
 
 const CATEGORY_KO: Record<string, string> = {
   politics: '정치', economy: '경제', entertainment: '엔터',
@@ -162,32 +163,18 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
             />
           )}
         </div>
-        {isBinary && yesOption && noOption && (() => {
-          const yp = Math.round(yesOption.price * 100)
-          const np = 100 - yp
-          return (
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '12px' }}>
-                <div>
-                  <div style={{ fontSize: '13px', color: Colors.textTertiary, marginBottom: '4px' }}>픽</div>
-                  <span style={{ fontSize: '36px', fontWeight: 900, color: '#00B37D', lineHeight: 1 }}>{yp}%</span>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '13px', color: Colors.textTertiary, marginBottom: '4px' }}>패스</div>
-                  <span style={{ fontSize: '36px', fontWeight: 900, color: '#FF4D6D', lineHeight: 1 }}>{np}%</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', borderRadius: '999px', overflow: 'hidden', height: '12px' }}>
-                <div style={{ width: `${yp}%`, background: '#00B37D' }} />
-                <div style={{ width: `${np}%`, background: '#FF4D6D' }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-                <span style={{ fontSize: '12px', color: '#00B37D', fontWeight: 600 }}>{yesOption.label ?? '픽'}</span>
-                <span style={{ fontSize: '12px', color: '#FF4D6D', fontWeight: 600 }}>{noOption.label ?? '패스'}</span>
-              </div>
-            </div>
-          )
-        })()}
+        {isBinary && yesOption && noOption && (
+          <div style={{ marginBottom: '16px' }}>
+            <BinaryProbBar
+              issueId={issue.id}
+              yesOptionId={yesOption.id}
+              noOptionId={noOption.id}
+              yesLabel={yesOption.label ?? '픽'}
+              noLabel={noOption.label ?? '패스'}
+              initialYesPrice={yesOption.price}
+            />
+          </div>
+        )}
         <div style={{ marginBottom: '16px' }}>
           <TradePanel
             issueId={issue.id}
@@ -245,34 +232,16 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
         </div>
 
         <div className="issue-prob">
-          {isBinary && yesOption && noOption && (() => {
-            const yp = Math.round(yesOption.price * 100)
-            const np = 100 - yp
-            return (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '12px' }}>
-                  <div>
-                    <div style={{ fontSize: '13px', color: Colors.textTertiary, marginBottom: '4px' }}>픽</div>
-                    <span style={{ fontSize: '36px', fontWeight: 900, color: '#00B37D', lineHeight: 1 }}>{yp}%</span>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '13px', color: Colors.textTertiary, marginBottom: '4px' }}>패스</div>
-                    <span style={{ fontSize: '36px', fontWeight: 900, color: '#FF4D6D', lineHeight: 1 }}>{np}%</span>
-                  </div>
-                </div>
-                <div>
-                  <div style={{ display: 'flex', borderRadius: '999px', overflow: 'hidden', height: '12px' }}>
-                    <div style={{ width: `${yp}%`, background: '#00B37D', transition: 'width 0.5s' }} />
-                    <div style={{ width: `${np}%`, background: '#FF4D6D', transition: 'width 0.5s' }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-                    <span style={{ fontSize: '12px', color: '#00B37D', fontWeight: 600 }}>{yesOption.label ?? '픽'}</span>
-                    <span style={{ fontSize: '12px', color: '#FF4D6D', fontWeight: 600 }}>{noOption.label ?? '패스'}</span>
-                  </div>
-                </div>
-              </>
-            )
-          })()}
+          {isBinary && yesOption && noOption && (
+            <BinaryProbBar
+              issueId={issue.id}
+              yesOptionId={yesOption.id}
+              noOptionId={noOption.id}
+              yesLabel={yesOption.label ?? '픽'}
+              noLabel={noOption.label ?? '패스'}
+              initialYesPrice={yesOption.price}
+            />
+          )}
 
           {!isBinary && (
             <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #F0F0F0', padding: '16px 20px' }}>
