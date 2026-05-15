@@ -1,9 +1,20 @@
+// ============================================================
+// Unsplash 썸네일 API — 비활성화 (AI 이슈 제안 탭과 함께 비활성화)
+// 재활성화 시 아래 주석 해제
+// ============================================================
+
+import { NextResponse } from 'next/server'
+
+export async function GET() {
+  return NextResponse.json({ url: null })
+}
+
+/*
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function GET(req: NextRequest) {
-  // 관리자 인증
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,3 +54,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ url: null })
   }
 }
+*/

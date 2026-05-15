@@ -6,7 +6,7 @@ import { Colors } from '@/constants/colors'
 import { Issue, IssueCategory } from '@/types'
 import AdminIssueList from '@/components/admin/AdminIssueList'
 import AdminIssueEdit from '@/components/admin/AdminIssueEdit'
-import AiIssueSuggest from '@/components/admin/AiIssueSuggest'
+// import AiIssueSuggest from '@/components/admin/AiIssueSuggest' // AI 제안 탭 비활성화
 import AdminLogs from '@/components/admin/AdminLogs'
 import AdminDashboard from '@/components/admin/AdminDashboard'
 import { createIssue, CreateIssueState, approveProposal, rejectProposal } from './actions'
@@ -264,7 +264,7 @@ export default function AdminTabs({
 
   const tabs: { key: TabType; label: string; badge?: number }[] = [
     { key: 'dashboard', label: '📊 대시보드' },
-    { key: 'ai',     label: 'AI 제안' },
+    // { key: 'ai',     label: 'AI 제안' }, // AI 제안 탭 비활성화
     { key: 'create', label: '이슈 개설' },
     { key: 'settle', label: '이슈 관리' },
     { key: 'edit',   label: '이슈 수정' },
@@ -301,7 +301,7 @@ export default function AdminTabs({
 
       {/* display none으로 state 유지 */}
       <div style={{ display: tab === 'dashboard' ? 'block' : 'none' }}><AdminDashboard /></div>
-      <div style={{ display: tab === 'ai'     ? 'block' : 'none' }}><AiIssueSuggest /></div>
+      {/* <div style={{ display: tab === 'ai' ? 'block' : 'none' }}><AiIssueSuggest /></div> */} {/* AI 제안 탭 비활성화 */}
       <div style={{ display: tab === 'create' ? 'block' : 'none' }}><IssueCreateForm /></div>
       <div style={{ display: tab === 'settle' ? 'block' : 'none' }}><AdminIssueList issues={issues} /></div>
       <div style={{ display: tab === 'edit'   ? 'block' : 'none' }}><AdminIssueEdit issues={issues} /></div>

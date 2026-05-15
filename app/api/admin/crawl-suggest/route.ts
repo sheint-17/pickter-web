@@ -1,3 +1,15 @@
+// ============================================================
+// AI 이슈 제안 크롤링 API — 비활성화 (504 타임아웃 방지)
+// 재활성화 시 아래 주석 해제
+// ============================================================
+
+import { NextResponse } from 'next/server'
+
+export async function POST() {
+  return NextResponse.json({ error: '크롤링 기능이 현재 비활성화되어 있어요.' }, { status: 503 })
+}
+
+/*
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
@@ -137,7 +149,6 @@ async function fetchUnsplashThumbnail(keyword: string): Promise<string | null> {
 
     const data = await res.json()
     const photo = data?.results?.[0]
-    // regular: 1080px 너비, 픽터 썸네일에 적합한 사이즈
     return photo?.urls?.regular ?? null
   } catch {
     return null
@@ -188,19 +199,12 @@ resolution_rules는 간결하게 2~3문장으로 작성하세요.
     "options": [{"label": "선택지1", "order_index": 0}, {"label": "선택지2", "order_index": 1}],
     "resolution_rules": "정산 기준 (2~3문장, 날짜는 오늘 이후로)",
     "lmsr_b": 100,
-    "thumbnail_keyword": "Unsplash 이미지 검색용 영어 키워드 2~3단어 (예: soccer player celebration, korean election, stock market)",
+    "thumbnail_keyword": "Unsplash 이미지 검색용 영어 키워드 2~3단어",
     "source_url": "참고한 원문 URL",
     "source_title": "원문 제목",
     "reason": "픽터 이슈로 적합한 이유 한 줄"
   }
-]
-
-binary일 때 options: [{"label":"픽","order_index":0},{"label":"패스","order_index":1}]
-lmsr_b 기준: 소형(지역·마이너) = 50, 중형(일반) = 100, 대형(전국적 관심) = 200
-thumbnail_keyword 가이드:
-- 사람 이름 대신 역할/직군으로 (예: "손흥민" → "soccer player", "이재명" → "korean politician")
-- 구체적이고 시각적인 단어 위주 (예: "baseball stadium crowd", "semiconductor chip technology")
-- 항상 영어로 작성`
+]`
 }
 
 async function callGemini(articleList: string, today: string): Promise<string> {
@@ -236,135 +240,6 @@ async function callGemini(articleList: string, today: string): Promise<string> {
 
 // ─── POST /api/admin/crawl-suggest ───────────────────────
 export async function POST() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cs) => cs.forEach(({ name, value, options }) => cookieStore.set(name, value, options)),
-      },
-    }
-  )
-
-  const saveLog = async (
-    level: 'info' | 'warn' | 'error',
-    message: string,
-    detail?: Record<string, unknown>
-  ) => {
-    await supabase.from('admin_logs').insert({ level, source: 'crawl-suggest', message, detail: detail ?? null })
-  }
-
-  // 관리자 인증
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: '인증 필요' }, { status: 401 })
-  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') return NextResponse.json({ error: '권한 없음' }, { status: 403 })
-
-  const today = new Date().toLocaleDateString('ko-KR', {
-    timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric',
-  })
-
-  // 7개 사이트 병렬 크롤링
-  const crawlResults = await Promise.all(SOURCES.map(crawlSite))
-  const allArticles  = crawlResults.flat()
-
-  if (allArticles.length === 0) {
-    await saveLog('error', '크롤링 결과 없음 — 모든 사이트 실패')
-    return NextResponse.json({ error: '크롤링된 글이 없어요' }, { status: 500 })
-  }
-
-  // 기존 URL 필터
-  const allUrls = allArticles.map(a => a.url)
-  const { data: existingRows } = await supabase.from('crawled_articles').select('url').in('url', allUrls)
-  const existingUrls = new Set((existingRows ?? []).map((r: { url: string }) => r.url))
-  const newArticles  = allArticles.filter(a => !existingUrls.has(a.url))
-
-  if (newArticles.length === 0) {
-    await saveLog('info', '새로운 글 없음 — 중복 스킵', { total: allArticles.length })
-    return NextResponse.json({ suggestions: [], message: '새로운 글이 없어요. 잠시 후 다시 시도해 주세요.' })
-  }
-
-  // Gemini 호출 — 입력 글 최대 35개로 제한
-  const articleList = newArticles
-    .slice(0, 35)
-    .map((a, i) => `${i + 1}. [${a.sourceName}] ${a.title}\nURL: ${a.url}`)
-    .join('\n\n')
-
-  let rawText = ''
-  try {
-    rawText = await callGemini(articleList, today)
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    await saveLog('error', 'Gemini API 호출 실패', { error: msg })
-    return NextResponse.json({ error: 'Gemini API 오류' }, { status: 500 })
-  }
-
-  // JSON 파싱 (잘려도 복구)
-  const rawSuggestions = recoverPartialJson(rawText) as Array<Record<string, unknown>>
-
-  if (rawSuggestions.length === 0) {
-    await saveLog('error', 'Gemini 응답 파싱 완전 실패', { raw: rawText.slice(0, 500) })
-    return NextResponse.json({ error: 'Gemini 응답 파싱 실패' }, { status: 500 })
-  }
-
-  // 잘림 감지
-  const wasTruncated = (() => {
-    try { JSON.parse(rawText.replace(/```json|```/g, '').trim()); return false } catch { return true }
-  })()
-
-  // Unsplash 썸네일 병렬 조회 (UNSPLASH_ACCESS_KEY 없으면 전부 null)
-  const thumbnailUrls = await Promise.all(
-    rawSuggestions.map(s => fetchUnsplashThumbnail((s.thumbnail_keyword as string) ?? ''))
-  )
-
-  // 썸네일 URL을 각 제안에 주입
-  const suggestions = rawSuggestions.map((s, i) => ({
-    ...s,
-    thumbnail_url: thumbnailUrls[i] ?? null,
-  }))
-
-  // 크롤링 URL 이력 저장
-  await supabase.from('crawled_articles').upsert(
-    newArticles.map(a => ({ url: a.url, source: a.source, title: a.title })),
-    { onConflict: 'url', ignoreDuplicates: true }
-  )
-
-  // 7일 지난 로그 자동 삭제
-  await supabase.from('admin_logs').delete()
-    .lt('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-
-  // 30일 지난 크롤링 이력 삭제
-  await supabase.from('crawled_articles').delete()
-    .lt('crawled_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-
-  // 썸네일 성공률 집계 (로그용)
-  const thumbnailSuccessCount = thumbnailUrls.filter(Boolean).length
-
-  await saveLog(
-    wasTruncated ? 'warn' : 'info',
-    wasTruncated
-      ? `Gemini 응답 잘림 — ${suggestions.length}개 복구됨`
-      : `AI 이슈 제안 완료 — ${suggestions.length}개`,
-    {
-      total_crawled: allArticles.length,
-      new_articles: newArticles.length,
-      skipped: existingUrls.size,
-      suggested: suggestions.length,
-      truncated: wasTruncated,
-      thumbnail_success: thumbnailSuccessCount,
-      thumbnail_fail: suggestions.length - thumbnailSuccessCount,
-    }
-  )
-
-  return NextResponse.json({
-    suggestions,
-    meta: {
-      total_crawled: allArticles.length,
-      new_articles:  newArticles.length,
-      skipped:       existingUrls.size,
-      suggested:     suggestions.length,
-    },
-  })
+  // ... (원본 로직)
 }
+*/
