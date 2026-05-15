@@ -37,19 +37,6 @@ interface ChartPoint {
   percent2?: number
 }
 
-const DUMMY_DATA: ChartPoint[] = [
-  { time: '5/1', percent: 50, percent2: 30 },
-  { time: '5/2', percent: 55, percent2: 28 },
-  { time: '5/3', percent: 62, percent2: 25 },
-  { time: '5/4', percent: 58, percent2: 27 },
-  { time: '5/5', percent: 65, percent2: 22 },
-  { time: '5/6', percent: 70, percent2: 20 },
-  { time: '5/7', percent: 68, percent2: 21 },
-  { time: '5/8', percent: 74, percent2: 18 },
-  { time: '5/9', percent: 71, percent2: 19 },
-  { time: '5/10', percent: 75, percent2: 17 },
-]
-
 interface Props {
   issueId: string
   yesOptionId: string
@@ -164,7 +151,8 @@ export default function PriceChart({ issueId, yesOptionId, secondOptionId, first
     })
   }, [issueId, yesOptionId, secondOptionId, period])
 
-  const chartData = data.length >= 5 ? data : DUMMY_DATA
+  const chartData = data.length >= 2 ? data : []
+  const isEmpty = chartData.length < 2
   const yDomain = getYDomain(chartData, isMulti)
   const tickIndices = new Set(getTickIndices(chartData, 6))
 
@@ -211,6 +199,18 @@ export default function PriceChart({ issueId, yesOptionId, secondOptionId, first
         <div style={{ height: `${height}px`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: '13px', color: Colors.textTertiary }}>로딩 중...</span>
         </div>
+      ) : isEmpty ? (
+        <div style={{
+          height: `${height}px`,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          gap: '8px',
+          background: Colors.background,
+          borderRadius: '12px',
+        }}>
+          <span style={{ fontSize: '24px' }}>📊</span>
+          <span style={{ fontSize: '13px', color: Colors.textTertiary }}>첫 번째 예측이 차트를 만들어요</span>
+        </div>
       ) : isMulti ? (
         // ── Multi: LineChart 2개 라인 ──────────────────────────
         <div style={{ height: `${height}px` }}>
@@ -256,9 +256,6 @@ export default function PriceChart({ issueId, yesOptionId, secondOptionId, first
         </div>
       )}
 
-      {!loading && data.length < 5 && (
-        <p style={{ fontSize: '11px', color: Colors.textTertiary, margin: '4px 0 0', textAlign: 'right' }}>* 샘플 데이터</p>
-      )}
     </div>
   )
 }
