@@ -14,6 +14,7 @@ import {
 } from 'recharts'
 import { supabase } from '@/lib/supabase'
 import { Colors } from '@/constants/colors'
+import { BarChart2 } from 'lucide-react'
 
 type Period = '1h' | '6h' | '1d' | 'all'
 
@@ -208,7 +209,7 @@ export default function PriceChart({ issueId, yesOptionId, secondOptionId, first
           background: Colors.background,
           borderRadius: '12px',
         }}>
-          <span style={{ fontSize: '24px' }}>📊</span>
+          <BarChart2 size={28} color={Colors.textTertiary} strokeWidth={1.5} />
           <span style={{ fontSize: '13px', color: Colors.textTertiary }}>첫 번째 예측이 차트를 만들어요</span>
         </div>
       ) : isMulti ? (

@@ -122,18 +122,20 @@ export default function TradePanel({ issueId, issueType, lmsrB, options, tickets
 
     if (mode === 'buy') {
       const estTickets = calcTicketsFromPoints(currentShares, selectedOptionIdx, pts, lmsrB)
-      const estTicketsFloor = Math.floor(estTickets)
       const priceBefore = selectedOption.price
       const priceAfter = calcPriceAfter(currentShares, selectedOptionIdx, estTickets, lmsrB)
       const priceDiff = Math.round((priceAfter - priceBefore) * 100)
-      const estPayout = estTicketsFloor * 100
-      const profit = estPayout - pts
-      const roi = Math.round((profit / pts) * 100)
       const isHighImpact = Math.abs(priceDiff) >= 5
 
-      return { mode: 'buy' as const, estTickets: estTicketsFloor, estPayout, profit, roi, priceBefore: Math.round(priceBefore * 100), priceAfter: Math.round(priceAfter * 100), priceDiff, isHighImpact }
+      // 제로섬 기준 예상 수령액: 투입 픽 / 현재 확률
+      const estPayout = Math.floor(pts / priceBefore)
+      const profit = estPayout - pts
+
+      return { mode: 'buy' as const, estPayout, profit, priceBefore: Math.round(priceBefore * 100), priceAfter: Math.round(priceAfter * 100), priceDiff, isHighImpact }
     } else {
-      const estReturn = Math.round(pts * selectedOption.price)
+      // 매도: 보유 티켓의 현재 가치 (투입 픽 × 현재 확률 / 평균 매수 확률)
+      const avgPrice = selectedTicket?.avg_price ?? selectedOption.price
+      const estReturn = Math.round(pts * (selectedOption.price / avgPrice))
       return { mode: 'sell' as const, estReturn }
     }
   })()
@@ -231,12 +233,12 @@ export default function TradePanel({ issueId, issueType, lmsrB, options, tickets
           {slippagePreview.mode === 'buy' ? (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>예상 티켓</span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.textPrimary }}>{slippagePreview.estTickets.toLocaleString()}장</span>
+                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>맞추면 받는 픽</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.textPrimary }}>{slippagePreview.estPayout.toLocaleString()}P</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>적중 시 수익</span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.yes }}>+{slippagePreview.profit.toLocaleString()}P ({slippagePreview.roi}%)</span>
+                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>예상 수익</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.yes }}>+{slippagePreview.profit.toLocaleString()}P</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '12px', color: Colors.textTertiary }}>확률 변화</span>

@@ -92,7 +92,15 @@ Unranked → Bronze → Silver → Gold → Platinum → Diamond → Grandmaster
 
 ---
 
-## 🛠️ 기술 스택
+## UI 아이콘 규칙
+
+- 이모지(emoji) 사용 금지. 단, 기존에 이미 사용 중인 곳은 유지.
+- 아이콘이 필요한 경우 **lucide-react** 아이콘 컴포넌트를 사용한다.
+- 예외: 랭킹 메달(1~3위), 출석 버튼처럼 이미 lucide-react로 구현된 패턴을 따른다.
+
+---
+
+## 기술 스택
 
 | 항목 | 내용 |
 |------|------|
