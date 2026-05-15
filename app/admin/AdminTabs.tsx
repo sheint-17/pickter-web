@@ -203,7 +203,7 @@ function IssueCreateForm() {
                   border: `1px solid #E5E7EB`, cursor: 'pointer',
                   fontSize: '14px', fontWeight: 600, color: Colors.textPrimary,
                 }}>
-                  <input type="radio" name="lmsr_b" value={b} defaultChecked={b === 100} style={{ accentColor: Colors.primary }} />
+                  <input type="radio" name="lmsr_b" value={b} defaultChecked={b === 50} style={{ accentColor: Colors.primary }} />
                   {b}
                 </label>
               ))}
