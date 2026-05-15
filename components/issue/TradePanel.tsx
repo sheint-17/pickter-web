@@ -52,7 +52,7 @@ function calcPriceAfter(currentShares: number[], optionIdx: number, deltaShares:
   return Math.exp((newShares[optionIdx] - maxQ) / b) / sumExp
 }
 
-export default function TradePanel({ issueId, issueType, lmsrB, options, tickets: initialTickets }: TradePanelProps) {
+export default function TradePanel({ issueId, issueType, lmsrB, options: initialOptions, tickets: initialTickets }: TradePanelProps) {
   const router = useRouter()
   const [mode, setMode] = useState<'buy' | 'sell'>('buy')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -61,6 +61,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options, tickets
   const [error, setError] = useState('')
   const [balance, setBalance] = useState<number | null>(null)
   const [tickets, setTickets] = useState<Ticket[]>(initialTickets)
+  const [options, setOptions] = useState<IssueOption[]>(initialOptions)
 
   const sorted = [...options].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
   const hasTickets = tickets.length > 0
@@ -73,12 +74,14 @@ export default function TradePanel({ issueId, issueType, lmsrB, options, tickets
   async function fetchUserData() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const [{ data: userData }, { data: ticketData }] = await Promise.all([
+    const [{ data: userData }, { data: ticketData }, { data: optionData }] = await Promise.all([
       supabase.from('users').select('point_balance').eq('id', user.id).single(),
       supabase.from('tickets').select('*').eq('user_id', user.id).eq('issue_id', issueId),
+      supabase.from('issue_options').select('*').eq('issue_id', issueId).order('order_index', { ascending: true }),
     ])
     if (userData) setBalance(userData.point_balance)
     if (ticketData) setTickets(ticketData)
+    if (optionData) setOptions(optionData)
   }
 
   useEffect(() => {
