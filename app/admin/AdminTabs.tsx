@@ -8,6 +8,7 @@ import AdminIssueList from '@/components/admin/AdminIssueList'
 import AdminIssueEdit from '@/components/admin/AdminIssueEdit'
 import AiIssueSuggest from '@/components/admin/AiIssueSuggest'
 import AdminLogs from '@/components/admin/AdminLogs'
+import AdminDashboard from '@/components/admin/AdminDashboard'
 import { createIssue, CreateIssueState, approveProposal, rejectProposal } from './actions'
 
 const CATEGORY_KO: Record<string, string> = {
@@ -250,7 +251,7 @@ function IssueCreateForm() {
 }
 
 // ─── 탭 타입 정의 ─────────────────────────────────────────
-type TabType = 'ai' | 'create' | 'settle' | 'edit' | 'review' | 'logs'
+type TabType = 'dashboard' | 'ai' | 'create' | 'settle' | 'edit' | 'review' | 'logs'
 
 export default function AdminTabs({
   issues,
@@ -259,9 +260,10 @@ export default function AdminTabs({
   issues: Issue[]
   proposals: Proposal[]
 }) {
-  const [tab, setTab] = useState<TabType>('ai')
+  const [tab, setTab] = useState<TabType>('dashboard')
 
   const tabs: { key: TabType; label: string; badge?: number }[] = [
+    { key: 'dashboard', label: '📊 대시보드' },
     { key: 'ai',     label: 'AI 제안' },
     { key: 'create', label: '이슈 개설' },
     { key: 'settle', label: '이슈 관리' },
@@ -298,6 +300,7 @@ export default function AdminTabs({
       </div>
 
       {/* display none으로 state 유지 */}
+      <div style={{ display: tab === 'dashboard' ? 'block' : 'none' }}><AdminDashboard /></div>
       <div style={{ display: tab === 'ai'     ? 'block' : 'none' }}><AiIssueSuggest /></div>
       <div style={{ display: tab === 'create' ? 'block' : 'none' }}><IssueCreateForm /></div>
       <div style={{ display: tab === 'settle' ? 'block' : 'none' }}><AdminIssueList issues={issues} /></div>

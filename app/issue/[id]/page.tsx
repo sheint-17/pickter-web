@@ -25,7 +25,11 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
     {
       cookies: {
         getAll() { return cookieStore.getAll() },
-        setAll(cookiesToSet) { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+          } catch { /* Server Component에서는 쿠키 쓰기 불가 — 무시 */ }
+        },
       },
     }
   )

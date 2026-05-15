@@ -56,6 +56,19 @@ export default function GNB() {
     }
 
     let realtimeChannel: ReturnType<typeof supabase.channel> | null = null
+    let presenceChannel: ReturnType<typeof supabase.channel> | null = null
+
+    // 동접수 추적용 — 로그인/비로그인 모두 참여
+    presenceChannel = supabase.channel('global-presence')
+    presenceChannel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        await presenceChannel!.track({
+          online_at: new Date().toISOString(),
+          user_id: currentUser?.id ?? null,
+        })
+      }
+    })
 
     fetchUser().then((user) => {
       if (!user) return
@@ -78,6 +91,7 @@ export default function GNB() {
     return () => {
       subscription.unsubscribe()
       if (realtimeChannel) supabase.removeChannel(realtimeChannel)
+      if (presenceChannel) supabase.removeChannel(presenceChannel)
     }
   }, [])
 

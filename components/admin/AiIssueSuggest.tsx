@@ -44,7 +44,7 @@ function SuggestionCard({
 }: {
   item: Suggestion
   index: number
-  onRegister: (s: Suggestion) => Promise<void>
+  onRegister: (s: Suggestion) => Promise<boolean>
   onSkip: () => void
 }) {
   const [editing, setEditing] = useState(false)
@@ -62,9 +62,9 @@ function SuggestionCard({
 
   const handleRegister = async () => {
     setLoading(true)
-    await onRegister(draft)
+    const success = await onRegister(draft)
     setLoading(false)
-    setDone(true)
+    if (success) setDone(true)
   }
 
   if (done) return null
@@ -401,7 +401,7 @@ export default function AiIssueSuggest() {
 
       if (issueErr || !issue) {
         setRegisterError('이슈 등록 실패: ' + (issueErr?.message ?? ''))
-        return
+        return false
       }
 
       const optionsToInsert = s.options.map(opt => ({
@@ -418,13 +418,15 @@ export default function AiIssueSuggest() {
       const { error: optErr } = await supabase.from('issue_options').insert(optionsToInsert)
       if (optErr) {
         setRegisterError('선택지 등록 실패: ' + optErr.message)
-        return
+        return false
       }
 
       router.refresh()
+      return true
     } catch (e) {
       setRegisterError('예상치 못한 오류가 발생했어요')
       console.error(e)
+      return false
     }
   }
 

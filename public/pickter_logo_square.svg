@@ -1,0 +1,19 @@
+<svg width="640" height="640" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
+  <!-- 흰 배경 -->
+  <rect width="640" height="640" rx="120" fill="white"/>
+  <!-- 3x3 도트 — GNB 색상 기준 -->
+  <g transform="translate(185, 185)">
+    <!-- 행1 (상단) -->
+    <circle cx="0"   cy="0"   r="50" fill="#B08FE8"/>
+    <circle cx="135" cy="0"   r="50" fill="#9B6FDB"/>
+    <circle cx="270" cy="0"   r="50" fill="#00B37D"/>
+    <!-- 행2 -->
+    <circle cx="0"   cy="135" r="50" fill="#9B6FDB"/>
+    <circle cx="135" cy="135" r="50" fill="#7B2FBE"/>
+    <circle cx="270" cy="135" r="50" fill="#9B6FDB"/>
+    <!-- 행3 (하단) -->
+    <circle cx="0"   cy="270" r="50" fill="#7B2FBE"/>
+    <circle cx="135" cy="270" r="50" fill="#9B6FDB"/>
+    <circle cx="270" cy="270" r="50" fill="#B08FE8"/>
+  </g>
+</svg>

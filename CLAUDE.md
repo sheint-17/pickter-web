@@ -12,11 +12,22 @@
 | 도구 | 용도 |
 |------|------|
 | **파일시스템 MCP** | 프로젝트 파일 직접 읽기·쓰기. 경로: `D:\Works\Project\pickter-web` |
-| **Supabase MCP** | DB 스키마 조회, SQL 실행, 테이블 데이터 확인 |
+| **Supabase MCP** | DB 스키마 조회, SQL 실행, 테이블 데이터 확인. project_id: `lychveomvaodtjadqsxj` |
 
 - 파일 수정 요청 시 Claude Code 프롬프트를 전달하는 대신 **파일시스템 MCP로 직접 수정**한다.
 - DB 마이그레이션(컬럼 추가 등) SQL은 **Supabase MCP로 직접 실행**한다.
 - 단, No-Touch Zone(RPC 함수, 트리거, RLS)은 MCP로도 절대 건드리지 않는다.
+
+## 🔑 외부 API 키
+
+| 서비스 | 키 위치 | 용도 |
+|--------|---------|------|
+| **Unsplash** | `.env.local` → `UNSPLASH_ACCESS_KEY` | 이슈 썸네일 자동 검색. API Route: `/api/admin/unsplash-thumbnail?keyword=검색어` |
+| **Gemini** | `.env.local` → `GEMINI_API_KEY` | AI 이슈 제안 (크롤링 분석). 모델: Gemini 2.5 Flash Lite |
+| **Kakao** | `.env.local` → `NEXT_PUBLIC_KAKAO_JS_KEY` | 카카오 로그인 + 카카오톡 공유 |
+
+- Unsplash 썸네일은 `/api/admin/unsplash-thumbnail` Route를 통해서만 호출한다 (키 노출 방지).
+- bash 환경(MCP)에서 Unsplash API 직접 호출은 네트워크 제한으로 불가. SQL로 직접 URL 삽입할 것.
 
 ---
 
@@ -62,7 +73,7 @@ Unranked → Bronze → Silver → Gold → Platinum → Diamond → Grandmaster
 |------|---------|
 | Unranked | 0 ~ 99 |
 | Bronze | 100 ~ 499 |
-| Silver | 500 ~ 1,499 |
+| Silver | 1,000 ~ 1,499 |
 | Gold | 1,500 ~ 3,999 |
 | Platinum | 4,000 ~ 9,999 |
 | Diamond | 10,000 ~ 24,999 |
@@ -76,10 +87,8 @@ Unranked → Bronze → Silver → Gold → Platinum → Diamond → Grandmaster
 
 - 소셜 카피 트레이딩
 - 그랜드마스터 평의회 투표 UI
-- AI 자동 정산 / AI 이슈 자동 제안
-- 다지선다형 이슈 (a/b/c/d)
+- AI 자동 정산
 - React Native 앱 버전
-- 카카오 로그인
 
 ---
 
@@ -114,7 +123,7 @@ Price = exp(q_pick / b) / (exp(q_pick / b) + exp(q_flop / b))
 
 ---
 
-## 📋 현재 개발 상태 (2026-05-13 기준)
+## 📋 현재 개발 상태 (2026-05-15 기준)
 
 ### 완료
 - 구글·카카오 OAuth 로그인, GNB, 카테고리 바
@@ -127,13 +136,17 @@ Price = exp(q_pick / b) / (exp(q_pick / b) + exp(q_flop / b))
 - AI vs 인간 챌린지, 언더독 배지
 - 검색 페이지 (/search?q=)
 - AuthModal (팝업 로그인)
-- 공유 카드 3종 (@vercel/og)
-- 카카오톡 공유
+- 공유 카드 3종 (@vercel/og) + 카카오톡 공유
 - Vercel 배포 + pickter.co.kr 도메인 연결
-- 이슈 정산 규칙 (resolution_rules) — DB 컬럼 + 관리자 입력 + 상세 페이지 토글 섹션
+- 이슈 정산 규칙 (resolution_rules)
+- LMSR 슬리피지 정확한 계산 (이진 탐색 역산, 5%p 경고)
+- AI 이슈 제안 (커뮤니티 크롤링 + Gemini 분석) — draft 등록 후 카드 자동 제거 수정
+- 운영 로그 탭, 이슈 수정 탭
+- 관리자 대시보드 (총 가입자, 동접수, 오늘 가입, 진행 이슈, 거래, 출석, 티어 분포, 최근 가입자)
+- GNB Presence 구독 (global-presence 채널 — 동접수 추적)
+- 파비콘 — GNB 3×3 도트 로고 SVG 적용
 
 ### 단기 남은 작업 (v1.2)
-- 슬리피지 정확한 계산 (LMSR 공식 프론트 구현)
 - 계급 배지 SVG 디자인 적용
 - 언더독 적중 시 공유 카드 자동 발송 연결
-- 전체 QA
+- 전체 QA 후 오픈
