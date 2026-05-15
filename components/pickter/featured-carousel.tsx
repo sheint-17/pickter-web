@@ -141,7 +141,7 @@ export function FeaturedCarousel() {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '18px' }}>
         {issue.thumbnail_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={issue.thumbnail_url} alt={issue.title} style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover', flexShrink: 0 }} />
+          <img src={issue.thumbnail_url} alt={issue.title} style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover', objectPosition: 'center top', flexShrink: 0 }} />
         ) : (
           <div style={{ width: '64px', height: '64px', borderRadius: '12px', flexShrink: 0, background: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>{emoji}</div>
         )}

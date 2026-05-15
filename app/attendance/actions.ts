@@ -47,10 +47,10 @@ export async function checkIn(): Promise<{
 
   const today = getKSTDate()
 
-  // 출석 기록 INSERT (rp_given: 하루 기본 1 RP)
+  // 출석 기록 INSERT (rp_given: 하루 기본 3 RP)
   const { data: attendance, error: insertError } = await supabase
     .from('attendance')
-    .insert({ user_id: user.id, attended_at: today, rp_given: 1 })
+    .insert({ user_id: user.id, attended_at: today, rp_given: 3 })
     .select()
     .single()
 
@@ -71,8 +71,8 @@ export async function checkIn(): Promise<{
 
   const streak = calcStreak(records ?? [], today)
   const isWeekBonus = streak % 7 === 0
-  // 하루 1 RP / 7일 연속 보너스 +5 RP → 총 6 RP
-  const rpGiven = isWeekBonus ? 6 : 1
+  // 하루 3 RP / 7일 연속 보너스 +10 RP → 총 13 RP
+  const rpGiven = isWeekBonus ? 13 : 3
 
   if (isWeekBonus) {
     await supabase

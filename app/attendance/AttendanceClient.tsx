@@ -121,7 +121,7 @@ export default function AttendanceClient({
           fontSize: '12px', marginTop: '12px', marginBottom: 0,
           color: done ? 'rgba(255,255,255,0.7)' : Colors.textTertiary,
         }}>
-          7일 연속 출석 시 +5 RP 보너스
+          7일 연속 출석 시 +10 RP 보너스
         </p>
       </div>
 
@@ -138,7 +138,7 @@ export default function AttendanceClient({
           </p>
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: Colors.textSecondary }}>
             {reward.isWeekBonus
-              ? `+1 RP + 보너스 +5 RP = +${reward.rpGiven} RP 지급`
+              ? `+3 RP + 보너스 +10 RP = +${reward.rpGiven} RP 지급`
               : `+${reward.rpGiven} RP 지급`}
           </p>
         </div>
@@ -169,12 +169,12 @@ export default function AttendanceClient({
           transition: 'all 0.2s',
         }}
       >
-        {isPending ? '처리 중...' : done ? '오늘 출석 완료 ✓' : '출석하기 +1 RP'}
+        {isPending ? '처리 중...' : done ? '오늘 출석 완료 ✓' : '출석하기 +3 RP'}
       </button>
 
       {!done && (
         <p style={{ textAlign: 'center', fontSize: '12px', color: Colors.textTertiary, marginTop: '12px' }}>
-          매일 자정 초기화 · 7일 연속 달성 시 +5 RP 추가 지급
+          매일 자정 초기화 · 7일 연속 달성 시 +10 RP 추가 지급
         </p>
       )}
 

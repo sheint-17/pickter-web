@@ -38,7 +38,7 @@ export default function IssueCard({ issue }: IssueCardProps) {
     <img
       src={issue.thumbnail_url}
       alt={issue.title}
-      style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+      style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', flexShrink: 0 }}
     />
   ) : (
     <div style={{

@@ -107,7 +107,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
   const thumbnail = issue.thumbnail_url ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={issue.thumbnail_url} alt={issue.title}
-      style={{ width: '64px', height: '64px', borderRadius: '14px', objectFit: 'cover', flexShrink: 0 }} />
+      style={{ width: '64px', height: '64px', borderRadius: '14px', objectFit: 'cover', objectPosition: 'center top', flexShrink: 0 }} />
   ) : (
     <div style={{ width: '64px', height: '64px', borderRadius: '14px', flexShrink: 0, background: Colors.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px' }}>
       {CATEGORY_EMOJI[issue.category] ?? '🎲'}
