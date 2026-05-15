@@ -1,7 +1,7 @@
 // components/issue/BinaryProbBar.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface BinaryProbBarProps {
@@ -10,35 +10,41 @@ interface BinaryProbBarProps {
   noOptionId: string
   yesLabel?: string
   noLabel?: string
-  initialYesPrice: number  // 0~1
+  initialYesPrice: number
 }
 
 export default function BinaryProbBar({
   issueId, yesOptionId, noOptionId, yesLabel = '픽', noLabel = '패스', initialYesPrice
 }: BinaryProbBarProps) {
-  const noPercent0 = Math.round((1 - initialYesPrice) * 100)
+  const noPercent0 = Math.round((1 - Number(initialYesPrice)) * 100)
   const [noPercent, setNoPercent] = useState(noPercent0)
   const yesPercent = 100 - noPercent
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   useEffect(() => {
-    // 기존 채널 제거 후 새로 구독
-    supabase.removeChannel(supabase.channel(`prob-bar-${issueId}`))
-
-    const channel = supabase
-      .channel(`prob-bar-${issueId}-${Date.now()}`)
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current)
+    }
+    channelRef.current = supabase
+      .channel(`prob-bar-${issueId}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'issue_options', filter: `issue_id=eq.${issueId}` },
         (payload) => {
           const updated = payload.new as { id: string; price: number }
           if (updated.id === noOptionId) {
-            setNoPercent(Math.round(updated.price * 100))
+            setNoPercent(Math.round(Number(updated.price) * 100))
           }
         }
       )
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+        channelRef.current = null
+      }
+    }
   }, [issueId, noOptionId])
 
   return (
