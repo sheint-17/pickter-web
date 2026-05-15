@@ -6,6 +6,7 @@ import { IssueOption, Ticket } from '@/types'
 import TradePanel from './TradePanel'
 import BinaryProbBar from './BinaryProbBar'
 import ResolutionRules from './ResolutionRules'
+import PickterGuide from './PickterGuide'
 
 interface Props {
   issueId: string
@@ -83,6 +84,7 @@ export default function IssueDetailClient({
         {probBar}
         {multiProb}
         {resolutionRules && <div style={{ marginTop: '8px' }}><ResolutionRules rules={resolutionRules} /></div>}
+        <div style={{ marginTop: '8px' }}><PickterGuide /></div>
       </div>
 
       {/* 커뮤니티 */}
