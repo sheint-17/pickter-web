@@ -113,7 +113,7 @@ function recoverPartialJson(raw: string): unknown[] {
 
   try {
     return JSON.parse(cleaned)
-  } catch { /* 잘린 경우 → 아래에서 복구 */ }
+  } catch { /* fallback recovery below */ }
 
   const arrayStart = cleaned.indexOf('[')
   if (arrayStart === -1) return []

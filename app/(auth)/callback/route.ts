@@ -41,6 +41,8 @@ export async function GET(request: Request) {
     .eq('id', user.id)
     .single()
 
+  console.log('[callback] user.id:', user.id, '| profile:', JSON.stringify(profile))
+
   // profile이 null이면 트리거 지연 가능성 → 온보딩으로 보냄
   if (!profile || profile?.nickname?.startsWith('u_')) {
     const onboardingResponse = NextResponse.redirect(`${origin}/onboarding`)
