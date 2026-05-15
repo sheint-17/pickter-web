@@ -171,7 +171,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
               noOptionId={noOption.id}
               yesLabel={yesOption.label ?? '픽'}
               noLabel={noOption.label ?? '패스'}
-              initialYesPrice={yesOption.price}
+              initialYesPrice={Number(yesOption.price)}
             />
           </div>
         )}
@@ -239,7 +239,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
               noOptionId={noOption.id}
               yesLabel={yesOption.label ?? '픽'}
               noLabel={noOption.label ?? '패스'}
-              initialYesPrice={yesOption.price}
+              initialYesPrice={Number(yesOption.price)}
             />
           )}
 

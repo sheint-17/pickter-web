@@ -21,9 +21,11 @@ export default function BinaryProbBar({
   const yesPercent = 100 - noPercent
 
   useEffect(() => {
-    // 실시간 구독: issue_options 가격 변동 감지
+    // 기존 채널 제거 후 새로 구독
+    supabase.removeChannel(supabase.channel(`prob-bar-${issueId}`))
+
     const channel = supabase
-      .channel(`prob-bar-${issueId}`)
+      .channel(`prob-bar-${issueId}-${Date.now()}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'issue_options', filter: `issue_id=eq.${issueId}` },

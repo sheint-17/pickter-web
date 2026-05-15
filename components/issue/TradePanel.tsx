@@ -304,30 +304,6 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
           현재 보유: <span style={{ fontWeight: 700, color: Colors.textSecondary }}>{balance.toLocaleString()}P</span>
         </p>
       )}
-
-      {/* binary 게이지바 */}
-      {issueType === 'binary' && (() => {
-        const noOpt = sorted.find(o => o.option_type === 'no')
-        const yesOpt = sorted.find(o => o.option_type === 'yes')
-        const noPercent = Math.round((noOpt?.price ?? 0.5) * 100)
-        const yesPercent = 100 - noPercent
-        return (
-          <div style={{ marginTop: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: Colors.yes }}>{yesPercent}%</span>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: Colors.no }}>{noPercent}%</span>
-            </div>
-            <div style={{ display: 'flex', borderRadius: '999px', overflow: 'hidden', height: '8px' }}>
-              <div style={{ width: `${yesPercent}%`, background: Colors.yes, transition: 'width 0.5s' }} />
-              <div style={{ width: `${noPercent}%`, background: Colors.no, transition: 'width 0.5s' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-              <span style={{ fontSize: '11px', color: Colors.yes }}>{yesOpt?.label ?? '픽'}</span>
-              <span style={{ fontSize: '11px', color: Colors.no }}>{noOpt?.label ?? '패스'}</span>
-            </div>
-          </div>
-        )
-      })()}
     </div>
   )
 }
