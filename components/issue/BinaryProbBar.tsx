@@ -35,7 +35,7 @@ export default function BinaryProbBar({
   useEffect(() => {
     fetchPrice()
     // 30초마다 폴링 (실시간 구독 대체)
-    const interval = setInterval(fetchPrice, 3000)
+    const interval = setInterval(fetchPrice, 1000)
     return () => clearInterval(interval)
   }, [fetchPrice])
 
