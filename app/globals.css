@@ -119,7 +119,30 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* GNB 검색바 배경색 고정 */
+/* TradePanel 단일 인스턴스 - 통합 레이아웃 */
+.issue-unified-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  grid-template-areas:
+    "chart trade"
+    "prob  trade"
+    "comm  trade";
+  gap: 24px;
+  align-items: start;
+}
+.issue-unified-chart     { grid-area: chart; }
+.issue-unified-trade     { grid-area: trade; position: sticky; top: 80px; }
+.issue-unified-prob      { grid-area: prob; }
+.issue-unified-community { grid-area: comm; }
+
+@media (max-width: 768px) {
+  .issue-unified-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .issue-unified-trade { position: static; }
+}
 .gnb-search-input {
   background: #EFEFEF !important;
   background-color: #EFEFEF !important;

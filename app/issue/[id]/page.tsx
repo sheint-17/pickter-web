@@ -13,6 +13,7 @@ import CommunityTabs from '@/components/issue/CommunityTabs'
 import { ShareButton } from '@/components/issue/ShareButton'
 import ResolutionRules from '@/components/issue/ResolutionRules'
 import BinaryProbBar from '@/components/issue/BinaryProbBar'
+import IssueDetailClient from '@/components/issue/IssueDetailClient'
 
 const CATEGORY_KO: Record<string, string> = {
   politics: '정치', economy: '경제', entertainment: '엔터',
@@ -149,132 +150,30 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
-      {/* 모바일: 1컬럼 */}
-      <div className="issue-mobile-layout">
-        <div style={{ marginBottom: '16px' }}>
-          {(yesOption || sortedOptions[0]) && (
+      {/* 이슈 상세 클라이언트 — TradePanel 단일 인스턴스 */}
+      <IssueDetailClient
+        issueId={issue.id}
+        isBinary={isBinary}
+        lmsrB={lmsrB}
+        sortedOptions={sortedOptions}
+        tickets={(tickets as Ticket[]) ?? []}
+        yesOption={yesOption ?? null}
+        noOption={noOption ?? null}
+        resolutionRules={resolutionRules}
+        chartSlot={
+          (yesOption || sortedOptions[0]) ? (
             <PriceChart
               issueId={issue.id}
               yesOptionId={(yesOption ?? sortedOptions[0]).id}
               firstOptionLabel={isBinary ? undefined : sortedOptions[0]?.label}
               secondOptionId={!isBinary && sortedOptions[1] ? sortedOptions[1].id : undefined}
               secondOptionLabel={!isBinary && sortedOptions[1] ? sortedOptions[1].label : undefined}
-              height={200}
+              height={240}
             />
-          )}
-        </div>
-        {isBinary && yesOption && noOption && (
-          <div style={{ marginBottom: '16px' }}>
-            <BinaryProbBar
-              issueId={issue.id}
-              yesOptionId={yesOption.id}
-              noOptionId={noOption.id}
-              yesLabel={yesOption.label ?? '픽'}
-              noLabel={noOption.label ?? '패스'}
-              initialYesPrice={Number(yesOption.price)}
-            />
-          </div>
-        )}
-        <div style={{ marginBottom: '16px' }}>
-          <TradePanel
-            issueId={issue.id}
-            issueType={isBinary ? 'binary' : 'multi'}
-            lmsrB={lmsrB}
-            options={sortedOptions}
-            tickets={(tickets as Ticket[]) ?? []}
-          />
-        </div>
-        {resolutionRules && (
-          <div style={{ marginBottom: '16px' }}>
-            <ResolutionRules rules={resolutionRules} />
-          </div>
-        )}
-        {communityYesOpt && communityNoOpt && (
-          <CommunityTabs
-            issueId={issue.id}
-            issueStatus={issue.status}
-            currentUserId={user?.id ?? null}
-            currentNickname={(userProfile as { nickname: string } | null)?.nickname ?? null}
-            currentPosition={currentPosition}
-            journals={journals as any}
-            hasExistingJournal={hasExistingJournal}
-            yesOption={communityYesOpt}
-            noOption={communityNoOpt}
-            allTickets={(allTickets ?? []) as { user_id: string; option_id: string }[]}
-          />
-        )}
-      </div>
-
-      {/* 데스크탑: 2컬럼 */}
-      <div className="issue-detail-grid issue-desktop-layout">
-
-        <div className="issue-chart">
-          {(yesOption || sortedOptions[0]) && (
-            <PriceChart
-                issueId={issue.id}
-                yesOptionId={(yesOption ?? sortedOptions[0]).id}
-                firstOptionLabel={isBinary ? undefined : sortedOptions[0]?.label}
-                secondOptionId={!isBinary && sortedOptions[1] ? sortedOptions[1].id : undefined}
-                secondOptionLabel={!isBinary && sortedOptions[1] ? sortedOptions[1].label : undefined}
-                height={240}
-            />
-          )}
-        </div>
-
-        <div className="issue-trade-panel">
-          <TradePanel
-            issueId={issue.id}
-            issueType={isBinary ? 'binary' : 'multi'}
-            lmsrB={lmsrB}
-            options={sortedOptions}
-            tickets={(tickets as Ticket[]) ?? []}
-          />
-        </div>
-
-        <div className="issue-prob">
-          {isBinary && yesOption && noOption && (
-            <BinaryProbBar
-              issueId={issue.id}
-              yesOptionId={yesOption.id}
-              noOptionId={noOption.id}
-              yesLabel={yesOption.label ?? '픽'}
-              noLabel={noOption.label ?? '패스'}
-              initialYesPrice={Number(yesOption.price)}
-            />
-          )}
-
-          {!isBinary && (
-            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #F0F0F0', padding: '16px 20px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {sortedOptions.map((opt, idx) => {
-                  const totalPrice = sortedOptions.reduce((s, o) => s + o.price, 0) || 1
-                  const percent = Math.round((opt.price / totalPrice) * 100)
-                  const isTop = idx === 0
-                  return (
-                    <div key={opt.id}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: isTop ? 700 : 500, color: Colors.textPrimary }}>{opt.label}</span>
-                        <span style={{ fontSize: '15px', fontWeight: 800, color: isTop ? '#7B2FBE' : Colors.textSecondary }}>{percent}%</span>
-                      </div>
-                      <div style={{ height: '6px', background: '#F0F0F0', borderRadius: '999px', overflow: 'hidden' }}>
-                        <div style={{ width: `${percent}%`, height: '100%', background: isTop ? '#7B2FBE' : '#C4B5FD', borderRadius: '999px', transition: 'width 0.5s' }} />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {resolutionRules && (
-            <div style={{ marginTop: '16px' }}>
-              <ResolutionRules rules={resolutionRules} />
-            </div>
-          )}
-        </div>
-
-        <div className="issue-community">
-          {communityYesOpt && communityNoOpt && (
+          ) : null
+        }
+        communitySlot={
+          communityYesOpt && communityNoOpt ? (
             <CommunityTabs
               issueId={issue.id}
               issueStatus={issue.status}
@@ -287,10 +186,9 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
               noOption={communityNoOpt}
               allTickets={(allTickets ?? []) as { user_id: string; option_id: string }[]}
             />
-          )}
-        </div>
-
-      </div>
+          ) : null
+        }
+      />
     </div>
   )
 }

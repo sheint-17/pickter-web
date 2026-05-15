@@ -25,14 +25,17 @@ export default function BinaryProbBar({
       .select('id, price')
       .eq('issue_id', issueId)
     if (!data) return
-    const noOpt = data.find(o => o.id === noOptionId)
-    if (noOpt) setNoPercent(Math.round(Number(noOpt.price) * 100))
-  }, [issueId, noOptionId])
+    const yesOpt = data.find(o => o.id === yesOptionId)
+    if (yesOpt) {
+      const yesP = Math.round(Number(yesOpt.price) * 100)
+      setNoPercent(100 - yesP)
+    }
+  }, [issueId, yesOptionId])
 
   useEffect(() => {
     fetchPrice()
     // 30초마다 폴링 (실시간 구독 대체)
-    const interval = setInterval(fetchPrice, 30000)
+    const interval = setInterval(fetchPrice, 3000)
     return () => clearInterval(interval)
   }, [fetchPrice])
 

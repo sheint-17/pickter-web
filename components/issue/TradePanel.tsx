@@ -61,7 +61,12 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
   const [error, setError] = useState('')
   const [balance, setBalance] = useState<number | null>(null)
   const [tickets, setTickets] = useState<Ticket[]>(initialTickets)
-  const [options, setOptions] = useState<IssueOption[]>(initialOptions)
+  const [options, setOptions] = useState<IssueOption[]>(() =>
+    initialOptions.map(o => ({ ...o, price: Number(o.price), shares: Number(o.shares) }))
+  )
+  const [prices, setPrices] = useState<Record<string, number>>(() =>
+    Object.fromEntries(initialOptions.map(o => [o.id, Number(o.price)]))
+  )
 
   const sorted = [...options].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
   const hasTickets = tickets.length > 0
@@ -77,7 +82,11 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
       .select('*')
       .eq('issue_id', issueId)
       .order('order_index', { ascending: true })
-    if (data) setOptions(data)
+    if (data) {
+      const mapped = data.map(o => ({ ...o, price: Number(o.price), shares: Number(o.shares) }))
+      setOptions(mapped)
+      setPrices({ ...Object.fromEntries(mapped.map(o => [o.id, o.price])) })
+    }
   }
 
   async function fetchUserData() {
@@ -121,6 +130,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
     }
 
     await fetchUserData()
+    await fetchOptions()
     router.refresh()
     setSelectedId(null); setAmount('')
   }
@@ -176,15 +186,15 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
           const isNo  = opt.option_type === 'no'
           const ticket = tickets.find(t => t.option_id === opt.id)
 
-          // binary: yes=100-no%, no=no.price*100 / multi: 각자 price 비율
+          // prices state에서 최신 확률 읽기
           let percent: number
           if (isBinary) {
-            const noOpt = sorted.find(o => o.option_type === 'no')
-            const noPercent = Math.round((noOpt?.price ?? 0.5) * 100)
-            percent = isYes ? (100 - noPercent) : noPercent
+            const yesOpt = sorted.find(o => o.option_type === 'yes')
+            const yesPercent = yesOpt ? Math.round((prices[yesOpt.id] ?? 0.5) * 100) : 50
+            percent = isYes ? yesPercent : (100 - yesPercent)
           } else {
-            const totalPrice = sorted.reduce((s, o) => s + o.price, 0) || 1
-            percent = Math.round((opt.price / totalPrice) * 100)
+            const totalPrice = sorted.reduce((s, o) => s + (prices[o.id] ?? 0.5), 0) || 1
+            percent = Math.round(((prices[opt.id] ?? 0.5) / totalPrice) * 100)
           }
 
           const activeColor = isBinary
