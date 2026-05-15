@@ -6,8 +6,8 @@ import type { UserTier } from '@/types'
 
 const TIERS: { tier: UserTier; rp: string; color: string }[] = [
   { tier: 'Unranked',    rp: '0~99',      color: '#AAAAAA' },
-  { tier: 'Bronze',      rp: '100~999',   color: '#A0622A' },
-  { tier: 'Silver',      rp: '1,000~',    color: '#666666' },
+  { tier: 'Bronze',      rp: '100~299',   color: '#A0622A' },
+  { tier: 'Silver',      rp: '300~',      color: '#666666' },
   { tier: 'Gold',        rp: '1,500~',    color: '#B8860B' },
   { tier: 'Platinum',    rp: '4,000~',    color: '#0A8F96' },
   { tier: 'Diamond',     rp: '10,000~',   color: '#1272A0' },

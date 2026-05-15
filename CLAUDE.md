@@ -72,8 +72,8 @@ Unranked → Bronze → Silver → Gold → Platinum → Diamond → Grandmaster
 | 티어 | 필요 RP |
 |------|---------|
 | Unranked | 0 ~ 99 |
-| Bronze | 100 ~ 499 |
-| Silver | 1,000 ~ 1,499 |
+| Bronze | 100 ~ 299 |
+| Silver | 300 ~ 1,499 |
 | Gold | 1,500 ~ 3,999 |
 | Platinum | 4,000 ~ 9,999 |
 | Diamond | 10,000 ~ 24,999 |
