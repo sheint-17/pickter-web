@@ -29,9 +29,25 @@ export async function GET(request: Request) {
     }
   )
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code)
-  if (error) {
+  const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code)
+  if (error || !user) {
     return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  }
+
+  // 신규 유저 체크 — 닉네임이 u_로 시작하면 온보딩으로 이동
+  const { data: profile } = await supabase
+    .from('users')
+    .select('nickname')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.nickname?.startsWith('u_')) {
+    const onboardingResponse = NextResponse.redirect(`${origin}/onboarding`)
+    // 쿠키를 온보딩 response에도 동일하게 심기
+    response.cookies.getAll().forEach(cookie => {
+      onboardingResponse.cookies.set(cookie.name, cookie.value)
+    })
+    return onboardingResponse
   }
 
   return response  // ✅ 쿠키 담긴 response 반환
