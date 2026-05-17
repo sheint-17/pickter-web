@@ -108,11 +108,9 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
 
     // 매도 시 보유 한도 초과 체크
     if (mode === 'sell' && selectedOption) {
-      const currentPrice = prices[selectedOption.id] ?? Number(selectedOption.price)
       const heldPickets = Math.floor(Number(selectedTicket?.quantity ?? 0))
-      const maxReturn = Math.floor(heldPickets * currentPrice)
-      if (inputVal > maxReturn) {
-        setError(`최대 ${maxReturn.toLocaleString()}P까지 매도할 수 있어요`)
+      if (inputVal > heldPickets) {
+        setError(`최대 ${heldPickets.toLocaleString()}픽켓까지 매도할 수 있어요`)
         return
       }
     }
@@ -125,17 +123,11 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
       }
     }
 
-    // 매도 시: 입력값은 "환급 포인트 기준" → 픽켓 수량으로 역산
+    // 매도 시: 입력값은 "픽켓 수량" 기준으로 직접 전달
     let rpcPointAmount = inputVal
-    if (mode === 'sell' && selectedOption) {
-      const currentPrice = prices[selectedOption.id] ?? Number(selectedOption.price)
-      if (currentPrice > 0) {
-        // 환급 포인트 ÷ 현재확률 = 픽켓 수량 (RPC가 픽켓 수량을 p_point_amount로 받음)
-        const heldPickets = Math.floor(Number(selectedTicket?.quantity ?? 0))
-        const picketsByPoint = Math.ceil(inputVal / currentPrice)
-        // 보유 픽켓 초과 방지
-        rpcPointAmount = Math.min(picketsByPoint, heldPickets)
-      }
+    if (mode === 'sell') {
+      const heldPickets = Math.floor(Number(selectedTicket?.quantity ?? 0))
+      rpcPointAmount = Math.min(inputVal, heldPickets)
     }
 
     submitLockRef.current = true
@@ -197,8 +189,12 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
         isHighImpact: Math.abs(priceDiff) >= 5,
       }
     } else {
-      // 매도 미리보기: 입력값 = 환급 포인트 기준 그대로 표시
-      return { mode: 'sell' as const, estReturn: pts }
+      // 매도 미리보기: 입력값 = 픽켓 수량 기준
+      if (!selectedOption) return null
+      const pickets = parseInt(amount)
+      const currentPrice = prices[selectedOption.id] ?? Number(selectedOption.price)
+      const estReturn = Math.floor(pickets * currentPrice * 0.90)  // 10% 수수료
+      return { mode: 'sell' as const, estReturn, fee: Math.floor(pickets * currentPrice * 0.10) }
     }
   })()
 
@@ -291,7 +287,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
               <span>현재 가치</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {/* 전액 버튼: currentValue(환급 포인트) 기준 */}
-                <button onClick={() => setAmount(String(currentValue))}
+                <button onClick={() => setAmount(String(heldPickets))}
                   style={{ fontSize: '11px', fontWeight: 700, color: Colors.primary, background: Colors.white, border: `1px solid ${Colors.primary}`, borderRadius: '6px', padding: '2px 8px', cursor: 'pointer' }}>
                   전액
                 </button>
@@ -318,14 +314,12 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
         <input type="number" value={amount} onChange={e => {
             const val = e.target.value
             if (mode === 'sell' && selectedOption) {
-              const currentPrice = prices[selectedOption.id] ?? Number(selectedOption.price)
               const heldPickets = Math.floor(Number(selectedTicket?.quantity ?? 0))
-              const maxReturn = Math.floor(heldPickets * currentPrice)
-              if (parseInt(val) > maxReturn) { setAmount(String(maxReturn)); return }
+              if (parseInt(val) > heldPickets) { setAmount(String(heldPickets)); return }
             }
             setAmount(val)
           }}
-          placeholder={mode === 'buy' ? '투자할 포인트(P) 입력' : '환급받을 포인트(P) 입력'}
+          placeholder={mode === 'buy' ? '투자할 포인트(P) 입력' : '매도할 픽켓 수량 입력'}
           style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '16px', boxSizing: 'border-box', outline: 'none' }} />
       </div>
 
@@ -375,10 +369,16 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
               )}
             </>
           ) : (
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '12px', color: Colors.textTertiary }}>예상 환급</span>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.textPrimary }}>{slippagePreview.estReturn.toLocaleString()}P</span>
-            </div>
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>예상 환급</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.textPrimary }}>{slippagePreview.estReturn.toLocaleString()}P</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>수수료 (10%)</span>
+                <span style={{ fontSize: '12px', color: Colors.no }}>-{'fee' in slippagePreview ? slippagePreview.fee.toLocaleString() : 0}P</span>
+              </div>
+            </>
           )}
         </div>
       )}

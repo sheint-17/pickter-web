@@ -11,8 +11,8 @@ import AdminDashboard from '@/components/admin/AdminDashboard'
 import { createIssue, CreateIssueState, approveProposal, rejectProposal } from './actions'
 
 const CATEGORY_KO: Record<string, string> = {
-  politics: '정치', economy: '경제', entertainment: '연예',
-  sports: '스포츠', tech: '테크', social: '사회', etc: '기타',
+  politics: '정치', economy: '경제', entertainment: '엔터',
+  sports: '스포츠', tech: 'IT', social: '사회', etc: '기타',
 }
 
 interface Proposal {
@@ -99,9 +99,9 @@ function ProposalReviewList({ proposals }: { proposals: Proposal[] }) {
 const CATEGORIES: { value: IssueCategory; label: string }[] = [
   { value: 'politics', label: '정치' },
   { value: 'economy', label: '경제' },
-  { value: 'entertainment', label: '연예' },
+  { value: 'entertainment', label: '엔터' },
   { value: 'sports', label: '스포츠' },
-  { value: 'tech', label: '테크' },
+  { value: 'tech', label: 'IT' },
   { value: 'social', label: '사회' },
   { value: 'etc', label: '기타' },
 ]
