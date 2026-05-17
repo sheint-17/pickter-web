@@ -23,11 +23,8 @@ export default function PickterGuide() {
       title: '정답 시 투자금 × 배당률 수령',
       desc: '정답이 확정되면 투자한 포인트에 배당률을 곱한 만큼 받아요. 오답이면 투자금은 돌아오지 않아요.',
     },
-    {
-      icon: '🔄',
-      title: '정산 전에 매도할 수 있어요',
-      desc: '확률이 올랐을 때 팔면 수익, 내렸을 때 팔면 손절이에요. 마감 1시간 전부터는 매도만 가능해요.',
-    },
+    // [SELL-DISABLED]
+    // { icon: '🔄', title: '정산 전에 매도할 수 있어요', desc: '...' },
   ]
 
   return (

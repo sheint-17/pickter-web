@@ -45,9 +45,9 @@ function calcPriceAfter(currentShares: number[], optionIdx: number, deltaShares:
 }
 
 export default function TradePanel({ issueId, issueType, lmsrB, options: initialOptions, tickets: initialTickets, closesAt }: TradePanelProps) {
-  const [mode, setMode] = useState<'buy' | 'sell'>('buy')
+  const mode = 'buy' // [SELL-DISABLED] 매도 비활성화 — 재활성화 시 useState<'buy' | 'sell'>('buy') 로 교체
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [amount, setAmount] = useState('')   // 매수: 투자 포인트 / 매도: 환급 포인트 기준
+  const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
@@ -69,7 +69,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
   }, [toast])
 
   const sorted = [...options].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
-  const hasTickets = tickets.length > 0
+  // const hasTickets = tickets.length > 0 // [SELL-DISABLED]
   const selectedOption = sorted.find(o => o.id === selectedId)
   const selectedOptionIdx = sorted.findIndex(o => o.id === selectedId)
   const selectedTicket = tickets.find(t => t.option_id === selectedId)
@@ -104,31 +104,17 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
 
     const inputVal = parseInt(amount)
     if (Number.isNaN(inputVal) || inputVal <= 0) { setError('올바른 수량을 입력해주세요'); return }
-    if (mode === 'buy' && inputVal < 1) { setError('최소 1P 이상 입력해주세요'); return }
+    if (inputVal < 1) { setError('최소 1P 이상 입력해주세요'); return }
 
-    // 매도 시 보유 한도 초과 체크
-    if (mode === 'sell' && selectedOption) {
-      const heldPickets = Math.floor(Number(selectedTicket?.quantity ?? 0))
-      if (inputVal > heldPickets) {
-        setError(`최대 ${heldPickets.toLocaleString()}픽켓까지 매도할 수 있어요`)
-        return
-      }
+    const remaining = new Date(closesAt).getTime() - Date.now()
+    if (remaining <= 60 * 60 * 1000) {
+      setError('마감 1시간 전부터는 참여가 불가해요.')
+      return
     }
 
-    if (mode === 'buy') {
-      const remaining = new Date(closesAt).getTime() - Date.now()
-      if (remaining <= 60 * 60 * 1000) {
-        setError('마감 1시간 전부터는 매수가 불가해요. 매도만 가능해요.')
-        return
-      }
-    }
-
-    // 매도 시: 입력값은 "픽켓 수량" 기준으로 직접 전달
-    let rpcPointAmount = inputVal
-    if (mode === 'sell') {
-      const heldPickets = Math.floor(Number(selectedTicket?.quantity ?? 0))
-      rpcPointAmount = Math.min(inputVal, heldPickets)
-    }
+    // [SELL-DISABLED] 매도 로직 비활성화
+    // if (mode === 'sell') { ... }
+    const rpcPointAmount = inputVal
 
     submitLockRef.current = true
     setLoading(true); setError('')
@@ -159,7 +145,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
       await fetchOptions()
       setSelectedId(null)
       setAmount('')
-      setToast('거래가 완료되었어요!')
+      setToast('참여가 완료되었어요!')
     } finally {
       setLoading(false)
       submitLockRef.current = false
@@ -172,7 +158,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
     const pts = parseInt(amount)
     if (!pts || pts <= 0) return null
 
-    if (mode === 'buy') {
+    if (true) { // mode === 'buy' 고정 [SELL-DISABLED]
       const estPickets = calcPicketsFromPoints(currentShares, selectedOptionIdx, pts, lmsrB)
       const priceBefore = prices[selectedOption.id] ?? selectedOption.price
       const priceAfter = calcPriceAfter(currentShares, selectedOptionIdx, estPickets, lmsrB)
@@ -188,14 +174,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
         priceDiff,
         isHighImpact: Math.abs(priceDiff) >= 5,
       }
-    } else {
-      // 매도 미리보기: 입력값 = 픽켓 수량 기준
-      if (!selectedOption) return null
-      const pickets = parseInt(amount)
-      const currentPrice = prices[selectedOption.id] ?? Number(selectedOption.price)
-      const estReturn = Math.floor(pickets * currentPrice * 0.90)  // 10% 수수료
-      return { mode: 'sell' as const, estReturn, fee: Math.floor(pickets * currentPrice * 0.10) }
-    }
+    } // [SELL-DISABLED] else { 매도 미리보기 } 제거
   })()
 
   return (
@@ -214,19 +193,12 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
         </div>
       )}
 
-      {/* 매수 / 매도 탭 */}
+      {/* [SELL-DISABLED] 매수/매도 탭 제거 — 재활성화 시 주석 해제
       <div style={{ display: 'flex', marginBottom: '16px', background: '#F0F0F0', borderRadius: '10px', padding: '3px', gap: '3px' }}>
-        <button onClick={() => { setMode('buy'); setSelectedId(null); setAmount('') }}
-          style={{ flex: 1, padding: '9px', background: mode === 'buy' ? Colors.white : 'transparent', color: mode === 'buy' ? Colors.primary : Colors.textTertiary, border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}>
-          매수
-        </button>
-        {hasTickets && (
-          <button onClick={() => { setMode('sell'); setSelectedId(null); setAmount('') }}
-            style={{ flex: 1, padding: '9px', background: mode === 'sell' ? Colors.white : 'transparent', color: mode === 'sell' ? Colors.primary : Colors.textTertiary, border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}>
-            매도
-          </button>
-        )}
+        <button onClick={() => { setMode('buy'); setSelectedId(null); setAmount('') }} ...>매수</button>
+        {hasTickets && <button onClick={() => { setMode('sell'); ... }}>매도</button>}
       </div>
+      */}
 
       {/* 선택지 버튼들 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
@@ -262,11 +234,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
                 {isBinary ? (isYes ? '픽' : '패스') : opt.label}
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {mode === 'sell' && ticket && (
-                  <span style={{ fontSize: '11px', opacity: 0.85 }}>
-                    {Math.round(Number(ticket.avg_price) * 100)}% 매수
-                  </span>
-                )}
+                {/* [SELL-DISABLED] 매수 시 확률 표시 제거 */}
                 <span style={{ fontSize: '16px', fontWeight: 800 }}>{percent}%</span>
               </div>
             </button>
@@ -274,52 +242,16 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
         })}
       </div>
 
-      {/* 매도 보유 정보 */}
-      {mode === 'sell' && selectedOption && selectedTicket && (() => {
-        const heldPickets = Math.floor(Number(selectedTicket.quantity))
-        const currentPrice = prices[selectedOption.id] ?? Number(selectedOption.price)
-        const avgPrice = Number(selectedTicket.avg_price)
-        const currentValue = Math.floor(heldPickets * currentPrice)   // 전량 매도 시 환급액
-        const pnl = currentValue - Math.round(avgPrice * heldPickets)
-        return (
-          <div style={{ background: Colors.primaryLight, borderRadius: '10px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: Colors.primary }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <span>현재 가치</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {/* 전액 버튼: currentValue(환급 포인트) 기준 */}
-                <button onClick={() => setAmount(String(heldPickets))}
-                  style={{ fontSize: '11px', fontWeight: 700, color: Colors.primary, background: Colors.white, border: `1px solid ${Colors.primary}`, borderRadius: '6px', padding: '2px 8px', cursor: 'pointer' }}>
-                  전액
-                </button>
-                <span style={{ fontWeight: 700, color: pnl >= 0 ? Colors.yes : Colors.no }}>
-                  {currentValue.toLocaleString()}P
-                  <span style={{ fontWeight: 400, fontSize: '12px', color: Colors.textTertiary }}> ({pnl >= 0 ? '+' : ''}{pnl.toLocaleString()}P)</span>
-                </span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <span>맞추면</span>
-              <span style={{ fontWeight: 700 }}>{heldPickets.toLocaleString()}P</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>매수 시 확률</span>
-              <span style={{ fontWeight: 700 }}>{Math.round(avgPrice * 100)}%</span>
-            </div>
-          </div>
-        )
-      })()}
+      {/* [SELL-DISABLED] 매도 보유 정보 블록 비활성화 */}
 
       {/* 금액 입력 */}
       <div style={{ marginBottom: '8px' }}>
         <input type="number" value={amount} onChange={e => {
             const val = e.target.value
-            if (mode === 'sell' && selectedOption) {
-              const heldPickets = Math.floor(Number(selectedTicket?.quantity ?? 0))
-              if (parseInt(val) > heldPickets) { setAmount(String(heldPickets)); return }
-            }
+            // [SELL-DISABLED] 매도 상한 체크 제거
             setAmount(val)
           }}
-          placeholder={mode === 'buy' ? '투자할 포인트(P) 입력' : '매도할 픽켓 수량 입력'}
+          placeholder='참여할 포인트(P) 입력'
           style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '16px', boxSizing: 'border-box', outline: 'none' }} />
       </div>
 
@@ -340,10 +272,10 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
           border: `1px solid ${slippagePreview.mode === 'buy' && slippagePreview.isHighImpact ? '#FED7AA' : '#E5E7EB'}`,
           borderRadius: '10px', padding: '12px', marginBottom: '16px',
         }}>
-          {slippagePreview.mode === 'buy' ? (
+          {true ? ( // mode === 'buy' 고정 [SELL-DISABLED]
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>투자</span>
+                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>참여</span>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.textPrimary }}>{parseInt(amount).toLocaleString()}P</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -368,18 +300,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
                 <p style={{ fontSize: '11px', color: '#EA580C', margin: '8px 0 0', fontWeight: 600 }}>⚠️ 이 거래로 확률이 크게 변합니다</p>
               )}
             </>
-          ) : (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>예상 환급</span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.textPrimary }}>{slippagePreview.estReturn.toLocaleString()}P</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '12px', color: Colors.textTertiary }}>수수료 (10%)</span>
-                <span style={{ fontSize: '12px', color: Colors.no }}>-{'fee' in slippagePreview ? slippagePreview.fee.toLocaleString() : 0}P</span>
-              </div>
-            </>
-          )}
+          ) : null /* [SELL-DISABLED] 매도 미리보기 제거 */}
         </div>
       )}
 
@@ -394,7 +315,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
             color: Colors.white, border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 700,
             cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, marginTop: '4px',
           }}>
-          {loading ? '처리 중...' : `${selectedOption.label || (selectedOption.option_type === 'yes' ? '픽' : '패스')} ${amount || 0}P ${mode === 'buy' ? '투자' : '매도'}`}
+          {loading ? '처리 중...' : `${selectedOption.label || (selectedOption.option_type === 'yes' ? '픽' : '패스')} ${amount || 0}P 참여`}
         </button>
       )}
 
