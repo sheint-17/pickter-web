@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Colors } from '@/constants/colors'
 import { IssueOption, Ticket } from '@/types'
+import { useAuthModal } from '@/components/layout/AuthModalProvider'
 
 interface TradePanelProps {
   issueId: string
@@ -60,6 +61,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
     Object.fromEntries(initialOptions.map(o => [o.id, Number(o.price)]))
   )
 
+  const { openLogin } = useAuthModal()
   const submitLockRef = useRef(false)
 
   useEffect(() => {
@@ -128,7 +130,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setError('로그인이 필요해요'); return }
+      if (!user) { openLogin(); setLoading(false); submitLockRef.current = false; return }
 
       const { data: rpcData, error: tradeError } = await supabase.rpc('execute_trade', {
         p_user_id: user.id,
