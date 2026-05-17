@@ -41,7 +41,10 @@ export async function checkIn(): Promise<{
     if (error.code === '23505' || error.message?.includes('이미 출석')) {
       return { success: false, error: '오늘은 이미 출석했어요' }
     }
-    return { success: false, error: '출석 처리 중 오류가 발생했어요' }
+    if (error.message?.includes('차단된 계정')) {
+      return { success: false, error: '차단된 계정입니다' }
+    }
+    return { success: false, error: error.message ?? '출석 처리 중 오류가 발생했어요' }
   }
 
   revalidatePath('/attendance')
