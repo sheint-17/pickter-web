@@ -9,6 +9,7 @@ import { UserTier, TicketWithRelations, SettlementWithRelations } from '@/types'
 import NicknameEditor from './NicknameEditor'
 import { LogoutButton } from './LogoutButton'
 import { ReportShareButton } from '@/components/issue/ReportShareButton'
+import { UnderdogShareButton } from './UnderdogShareButton'
 
 const CATEGORY_KO: Record<string, string> = {
   politics: '정치', economy: '경제', entertainment: '엔터',
@@ -240,12 +241,15 @@ function BadgeSection({ badges }: { badges: UserBadge[] }) {
       <h2 style={{ fontSize: '16px', fontWeight: 700, color: Colors.textPrimary, marginBottom: '12px' }}>🏅 내 배지</h2>
       <div style={{ background: Colors.white, borderRadius: '16px', padding: '16px 20px', border: `1px solid ${Colors.border}` }}>
         {hasUnderdog && (
-          <div style={{ background: 'linear-gradient(135deg, #FF6B35 0%, #F7B731 100%)', borderRadius: '12px', padding: '12px 16px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '28px' }}>🔥</span>
-            <div>
-              <p style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: '0 0 2px' }}>언더독 히어로</p>
-              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.85)', margin: 0 }}>30% 미만 확률 선택지 적중 · RP +20 보상</p>
+          <div style={{ background: 'linear-gradient(135deg, #FF6B35 0%, #F7B731 100%)', borderRadius: '12px', padding: '12px 16px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '28px' }}>🔥</span>
+              <div>
+                <p style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: '0 0 2px' }}>언더독 히어로</p>
+                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.85)', margin: 0 }}>30% 미만 확률 선택지 적중 · RP +20 보상</p>
+              </div>
             </div>
+            <UnderdogShareButton />
           </div>
         )}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>

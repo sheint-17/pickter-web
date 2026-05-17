@@ -5,6 +5,7 @@ import './globals.css'
 import GNB from '@/components/layout/GNB'
 import CategoryBar from '@/components/layout/CategoryBar'
 import { AuthModalProvider } from '@/components/layout/AuthModalProvider'
+import { UnderdogNotificationChecker } from '@/components/layout/UnderdogNotificationChecker'
 import { Geist } from "next/font/google"
 import { cn } from "@/lib/utils"
 
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body style={{ margin: 0, padding: 0, background: '#F8F8F8', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
         <AuthModalProvider>
           <GNB />
+          <UnderdogNotificationChecker />
           <div style={{
             position: 'fixed', top: '60px', left: 0, right: 0,
             zIndex: 90, background: 'white', borderBottom: '1px solid #F0F0F0',
