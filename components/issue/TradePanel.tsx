@@ -60,6 +60,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
   const [prices, setPrices] = useState<Record<string, number>>(() =>
     Object.fromEntries(initialOptions.map(o => [o.id, Number(o.price)]))
   )
+  const [netInvested, setNetInvested] = useState<Record<string, number>>({}) // option_id → 실제 순투입 포인트
 
   const { openLogin } = useAuthModal()
   const submitLockRef = useRef(false)
@@ -76,14 +77,8 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
   const selectedOptionIdx = sorted.findIndex(o => o.id === selectedId)
   const currentShares = sorted.map(o => Number(o.shares) ?? 0)
 
-  // RUN: 이슈 내 전체 보유 포인트 합산 (원금 기준)
-  const totalInvested = tickets.reduce((sum, t) => {
-    const opt = sorted.find(o => o.id === t.option_id)
-    if (!opt) return sum
-    // avg_price × quantity ≈ 원금 근사값, trades에서 실제 point_amount 합산이 정확하나
-    // UI 표시용으로 avg_price 기반 근사 사용
-    return sum + Math.round(Number(t.avg_price) * Number(t.quantity))
-  }, 0)
+  // RUN: trades 기반 실제 순투입 포인트 합산
+  const totalInvested = Object.values(netInvested).reduce((a, b) => a + b, 0)
   const runRefund = Math.floor(totalInvested * 0.75)
   const runPenalty = totalInvested - runRefund
   const isBothSides = tickets.length > 1
@@ -107,6 +102,24 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
     ])
     if (userData) setBalance(userData.point_balance)
     if (ticketData) setTickets(ticketData)
+
+    // 실제 순투입 포인트: buy - sell 합산
+    const { data: tradeData } = await supabase
+      .from('trades')
+      .select('option_id, trade_type, point_amount')
+      .eq('user_id', user.id)
+      .eq('issue_id', issueId)
+
+    if (tradeData) {
+      const invested: Record<string, number> = {}
+      for (const t of tradeData) {
+        if (!invested[t.option_id]) invested[t.option_id] = 0
+        invested[t.option_id] += t.trade_type === 'buy' ? t.point_amount : -t.point_amount
+      }
+      // 0 이하는 런 후 완전 청산된 것 — 제거
+      Object.keys(invested).forEach(k => { if (invested[k] <= 0) delete invested[k] })
+      setNetInvested(invested)
+    }
   }
 
   useEffect(() => { fetchUserData(); fetchOptions() }, [])
@@ -413,7 +426,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
           <div style={{ background: '#F8F9FA', borderRadius: '10px', padding: '12px 14px', marginBottom: '14px' }}>
             {tickets.map(t => {
               const opt = sorted.find(o => o.id === t.option_id)
-              const invested = Math.round(Number(t.avg_price) * Number(t.quantity))
+              const invested = netInvested[t.option_id] ?? 0
               const label = opt ? (isBinary ? (opt.option_type === 'yes' ? '픽' : '패스') : opt.label) : '-'
               return (
                 <div key={t.option_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
