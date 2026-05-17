@@ -1,7 +1,7 @@
 // components/admin/AdminIssueList.tsx
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Colors } from '@/constants/colors'
@@ -15,42 +15,72 @@ export default function AdminIssueList({ issues }: AdminIssueListProps) {
   const router = useRouter()
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  // ⚙️ 정산/삭제/공개 동기 락 (C3): 더블 클릭/StrictMode 이중 실행 차단
+  const actionLockRef = useRef(false)
 
-  async function handleSettle(issueId: string, correctOptionId: string) {
-    setLoadingId(issueId)
-    setError('')
-    const { error: settleError } = await supabase.rpc('settle_issue', {
-      p_issue_id: issueId,
-      p_correct_option: correctOptionId,
-    })
-    setLoadingId(null)
-    if (settleError) { setError(settleError.message); return }
-    router.refresh()
+  async function handleSettle(issueId: string, correctOptionId: string, optionLabel: string) {
+    if (actionLockRef.current) return
+    if (!confirm(`이 이슈를 “${optionLabel}” 정답으로 정산하시겠어요?\n\n· 정답 유저에게 포인트/RP 지급\n· 이 작업은 되돌릴 수 없습니다`)) return
+
+    actionLockRef.current = true
+    setLoadingId(issueId); setError('')
+    try {
+      const { error: settleError } = await supabase.rpc('settle_issue', {
+        p_issue_id: issueId,
+        p_correct_option: correctOptionId,
+      })
+      if (settleError) { setError(settleError.message); return }
+      router.refresh()
+    } finally {
+      setLoadingId(null)
+      actionLockRef.current = false
+    }
   }
 
   async function handleActivate(issueId: string) {
-    setLoadingId(issueId)
-    setError('')
-    const { error: err } = await supabase
-      .from('issues')
-      .update({ status: 'active' })
-      .eq('id', issueId)
-    setLoadingId(null)
-    if (err) { setError(err.message); return }
-    router.refresh()
+    if (actionLockRef.current) return
+    actionLockRef.current = true
+    setLoadingId(issueId); setError('')
+    try {
+      const { error: err } = await supabase
+        .from('issues')
+        .update({ status: 'active' })
+        .eq('id', issueId)
+      if (err) { setError(err.message); return }
+      // admin 액션 로그
+      await supabase.rpc('admin_log_action', {
+        p_action: 'activate_issue',
+        p_message: '이슈 공개 (draft→active)',
+        p_detail: { issue_id: issueId },
+      })
+      router.refresh()
+    } finally {
+      setLoadingId(null)
+      actionLockRef.current = false
+    }
   }
 
   async function handleDelete(issueId: string) {
+    if (actionLockRef.current) return
     if (!confirm('이 이슈를 삭제할까요?')) return
-    setLoadingId(issueId)
-    setError('')
-    const { error: err } = await supabase
-      .from('issues')
-      .delete()
-      .eq('id', issueId)
-    setLoadingId(null)
-    if (err) { setError(err.message); return }
-    router.refresh()
+    actionLockRef.current = true
+    setLoadingId(issueId); setError('')
+    try {
+      const { error: err } = await supabase
+        .from('issues')
+        .delete()
+        .eq('id', issueId)
+      if (err) { setError(err.message); return }
+      await supabase.rpc('admin_log_action', {
+        p_action: 'delete_issue',
+        p_message: '이슈 삭제',
+        p_detail: { issue_id: issueId },
+      })
+      router.refresh()
+    } finally {
+      setLoadingId(null)
+      actionLockRef.current = false
+    }
   }
 
   const draftIssues  = issues.filter(i => i.status === 'draft')
@@ -143,7 +173,7 @@ export default function AdminIssueList({ issues }: AdminIssueListProps) {
                 {issue.issue_options?.map((option: IssueOption) => (
                   <button
                     key={option.id}
-                    onClick={() => handleSettle(issue.id, option.id)}
+                    onClick={() => handleSettle(issue.id, option.id, option.label)}
                     disabled={loadingId === issue.id}
                     style={{
                       padding: '10px 16px',

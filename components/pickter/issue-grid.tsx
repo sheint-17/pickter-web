@@ -13,17 +13,25 @@ const categoryColor: Record<string, string> = {
   sports: 'blue', tech: 'cyan', social: 'orange', etc: 'yellow',
 }
 
+function getTimeLabel(closesAt: string): { label: string; urgent: 'none' | 'day' | 'hour' } {
+  const diffMs = new Date(closesAt).getTime() - Date.now()
+  if (diffMs <= 0) return { label: '마감', urgent: 'hour' }
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays  = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (diffHours < 24) return { label: `${diffHours}시간 후 마감`, urgent: 'hour' }
+  if (diffDays === 1)  return { label: '1일 후 마감',            urgent: 'day'  }
+  return { label: `${diffDays}일 후 마감`, urgent: 'none' }
+}
+
 function mapToCardIssue(issue: SupabaseIssue): Issue {
   const opts = (issue.issue_options ?? []) as IssueOption[]
   const sorted = [...opts].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
 
   const isBinary = issue.issue_type !== 'multi'
   const yesOption = sorted.find(o => o.option_type === 'yes')
-  const noOption  = sorted.find(o => o.option_type === 'no')
-  const pickPercent  = yesOption ? Math.round(yesOption.price * 100) : 50
-  const passPercent  = 100 - pickPercent
+  const pickPercent = yesOption ? Math.round(yesOption.price * 100) : 50
+  const passPercent = 100 - pickPercent
 
-  // multi 선택지: 전체를 percent로 변환, order_index 순 정렬
   const totalPrice = sorted.reduce((s, o) => s + o.price, 0) || 1
   const multiOptions = sorted.map(o => ({
     id: o.id,
@@ -32,17 +40,15 @@ function mapToCardIssue(issue: SupabaseIssue): Issue {
     order_index: o.order_index ?? 0,
   }))
 
-  const daysLeft = Math.max(
-    0,
-    Math.round((new Date(issue.closes_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  )
+  const { label: timeLabel, urgent } = getTimeLabel(issue.closes_at)
 
   return {
     id: issue.id,
     title: issue.title,
     category: categoryLabel[issue.category] ?? issue.category,
     categoryColor: categoryColor[issue.category] ?? 'yellow',
-    daysLeft,
+    timeLabel,
+    urgent,
     issueType: isBinary ? 'binary' : 'multi',
     pickPercent,
     passPercent,

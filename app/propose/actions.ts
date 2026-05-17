@@ -34,17 +34,6 @@ export async function submitProposal(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: '로그인이 필요해요' }
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('tier')
-    .eq('id', user.id)
-    .single()
-
-  const SILVER_PLUS = ['Silver', 'Gold', 'Platinum', 'Diamond', 'Grandmaster']
-  if (!profile || !SILVER_PLUS.includes(profile.tier)) {
-    return { success: false, error: 'Silver 등급 이상만 제안할 수 있어요' }
-  }
-
   const title = (formData.get('title') as string)?.trim()
   const category = formData.get('category') as IssueCategory
   const closesAtRaw = formData.get('closes_at') as string
@@ -61,9 +50,16 @@ export async function submitProposal(
   const closesAt = new Date(closesAtRaw + ':00+09:00').toISOString()
   const description = JSON.stringify({ closes_at: closesAt, lmsr_b: lmsrB, yes_label: yesLabel, no_label: noLabel })
 
-  const { error } = await supabase
-    .from('issue_proposals')
-    .insert({ user_id: user.id, title, category, description })
+  // 보증금 차감 + 제안 INSERT 를 1개 트랜잭션으로 통합 (H2)
+  //   - Silver 등급 검증
+  //   - 50P 차감
+  //   - issue_proposals.point_deposited = 50
+  //   - ledger 행 + idempotency_key 자동
+  const { error } = await supabase.rpc('submit_proposal', {
+    p_title: title,
+    p_category: category,
+    p_description: description,
+  })
 
   if (error) return { success: false, error: error.message }
 

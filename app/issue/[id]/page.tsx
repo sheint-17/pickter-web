@@ -98,7 +98,11 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
   const diffMs = closesAt.getTime() - now.getTime()
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-  const timeLeft = diffDays > 0 ? `${diffDays}일 후 마감` : diffHours > 0 ? `${diffHours}시간 후 마감` : '마감됨'
+  const diffMins = Math.floor(diffMs / (1000 * 60))
+  const timeLeft = diffMs <= 0 ? '마감됨'
+    : diffDays > 0 ? `${diffDays}일 후 마감`
+    : diffHours > 0 ? `${diffHours}시간 후 마감`
+    : `${diffMins}분 후 마감`
 
   const CATEGORY_EMOJI: Record<string, string> = {
     politics: '🏛️', economy: '📈', entertainment: '🎤',
@@ -111,7 +115,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
 
   const thumbnail = issue.thumbnail_url ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={issue.thumbnail_url} alt={issue.title}
+    <img src={issue.thumbnail_url} alt={issue.title} referrerPolicy="no-referrer"
       style={{ width: '64px', height: '64px', borderRadius: '14px', objectFit: 'cover', objectPosition: 'center top', flexShrink: 0 }} />
   ) : (
     <div style={{ width: '64px', height: '64px', borderRadius: '14px', flexShrink: 0, background: Colors.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px' }}>
@@ -160,6 +164,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
         yesOption={yesOption ?? null}
         noOption={noOption ?? null}
         resolutionRules={resolutionRules}
+        closesAt={issue.closes_at}
         chartSlot={
           (yesOption || sortedOptions[0]) ? (
             <PriceChart

@@ -30,25 +30,23 @@ export default async function Home({
     }
   )
 
-  // DB 카테고리 ID 매핑 (CategoryBar id → DB enum)
+  // CategoryBar id → DB enum (other → etc 수정)
   const categoryMap: Record<string, string> = {
-    politics: 'politics',
-    economy: 'economy',
+    politics:      'politics',
+    economy:       'economy',
     entertainment: 'entertainment',
-    sports: 'sports',
-    tech: 'tech',
-    social: 'social',
-    other: 'other',
+    sports:        'sports',
+    tech:          'tech',
+    social:        'social',
+    other:         'etc',   // ← 수정: 'other' → 'etc'
   }
 
-  // 이슈 쿼리 — hot/all은 필터 없음, 나머지는 category 필터
   let issueQuery = supabase
     .from('issues')
     .select('*, issue_options!issue_options_issue_id_fkey(*)')
     .eq('status', 'active')
 
   if (activeCategory === 'hot') {
-    // 인기: participant_count 내림차순
     issueQuery = issueQuery.order('participant_count', { ascending: false })
   } else if (activeCategory === 'all') {
     issueQuery = issueQuery.order('created_at', { ascending: false })
@@ -62,7 +60,6 @@ export default async function Home({
 
   const { data: issues } = await issueQuery
 
-  // 급상승 이슈: total_volume 상위 3개
   const { data: trendingRaw } = await supabase
     .from('issues')
     .select('id, title, total_volume, issue_options!issue_options_issue_id_fkey(option_type, price)')
@@ -81,7 +78,6 @@ export default async function Home({
     }
   })
 
-  // TOP 3 랭킹
   const { data: topRankers } = await supabase
     .from('users')
     .select('id, nickname, tier, rp_total')

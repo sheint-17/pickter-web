@@ -34,12 +34,16 @@
 ## 🚫 절대 건드리지 말 것 (No-Touch Zone)
 
 설계 논의 중에도 아래 항목은 변경을 제안하지 않는다.
+단, 2026-05-16 보안 패치로 아래 항목 전부 검토·수정 완료.
+**이후에도 함부로 건드리지 않는다.**
 
 - `execute_trade` / `settle_issue` RPC 함수 로직
-- DB 트리거 전체 (on_auth_user_created, trg_update_rp_total 등)
-- RLS (행 수준 보안) 정책
+- DB 트리거 전체 (trg_protect_user_sensitive_cols, trg_update_rp_total 등)
+- RLS 정책 전체
 - Supabase Auth PKCE Flow 설정
 - `proxy.ts` 미들웨어
+- `pickter.trusted_rpc` 세션 변수 패턴 (신뢰된 RPC 마커)
+- idempotency_key UNIQUE 제약
 
 ---
 
@@ -131,13 +135,13 @@ Price = exp(q_pick / b) / (exp(q_pick / b) + exp(q_flop / b))
 
 ---
 
-## 📋 현재 개발 상태 (2026-05-15 기준)
+## 📋 현재 개발 상태 (2026-05-16 기준)
 
 ### 완료
 - 구글·카카오 OAuth 로그인, GNB, 카테고리 바
 - 홈 화면 (피처드 캐러셀, 이슈 그리드, 급상승 사이드바, TOP3 랭킹)
 - 이슈 상세 + TradePanel (binary/multi 통합)
-- N선택 이슈 (multi) 지원 — option_type TEXT 변환, order_index 추가
+- N선택 이슈 (multi) 지원
 - 정산 시스템 + RP·티어 갱신
 - 마이페이지 + 픽터 리포트
 - 랭킹, 출석체크, 알림, 유저 이슈 제안
@@ -146,15 +150,24 @@ Price = exp(q_pick / b) / (exp(q_pick / b) + exp(q_flop / b))
 - AuthModal (팝업 로그인)
 - 공유 카드 3종 (@vercel/og) + 카카오톡 공유
 - Vercel 배포 + pickter.co.kr 도메인 연결
-- 이슈 정산 규칙 (resolution_rules)
-- LMSR 슬리피지 정확한 계산 (이진 탐색 역산, 5%p 경고)
-- AI 이슈 제안 (커뮤니티 크롤링 + Gemini 분석) — draft 등록 후 카드 자동 제거 수정
-- 운영 로그 탭, 이슈 수정 탭
-- 관리자 대시보드 (총 가입자, 동접수, 오늘 가입, 진행 이슈, 거래, 출석, 티어 분포, 최근 가입자)
-- GNB Presence 구독 (global-presence 채널 — 동접수 추적)
-- 파비콘 — GNB 3×3 도트 로고 SVG 적용
+- LMSR 슬리피지 정확한 계산 + 픽켓 시스템
+- AI 이슈 제안 (크롤링 + Gemini) — 비활성화 중
+- **[2026-05-16] 보안 전면 패치 (C1-C6·H1-H4·M1-M3)**
+  - RLS 전면 재설계, users 민감 컬럼 보호 트리거
+  - settle_issue 6단 가드, TradePanel 중복 클릭 방지
+  - idempotency_key 원장 시스템, ledger 정합성 구조
+  - 출석 RPC화 (check_in_today), 제안 보증금 escrow
+  - admin_logs 통일, price_history 중복 제거
+  - 오픈 전 테스트 데이터 전수 초기화
 
-### 단기 남은 작업 (v1.2)
-- 계급 배지 SVG 디자인 적용
-- 언더독 적중 시 공유 카드 자동 발송 연결
-- 전체 QA 후 오픈
+### 오픈 직전 남은 작업
+- [ ] 새 계정 로그인 후 admin_promote_user() 호출
+- [ ] 오픈 이슈 15개 등록 (lmsr_b=50)
+- [ ] 전체 QA (매수→매도→정산)
+- [ ] 계급 배지 SVG 디자인 적용
+- [ ] 언더독 공유 카드 자동 발송 연결
+
+### v2 (다음 스프린트)
+- signup_bonus 백필, multi LMSR 정공법
+- AI 이슈 제안 탭 재활성화
+- React Native 앱 버전

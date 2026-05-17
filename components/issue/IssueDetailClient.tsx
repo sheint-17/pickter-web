@@ -19,11 +19,12 @@ interface Props {
   resolutionRules: string | null
   communitySlot: React.ReactNode
   chartSlot: React.ReactNode
+  closesAt: string
 }
 
 export default function IssueDetailClient({
   issueId, isBinary, lmsrB, sortedOptions, tickets,
-  yesOption, noOption, resolutionRules, communitySlot, chartSlot,
+  yesOption, noOption, resolutionRules, communitySlot, chartSlot, closesAt,
 }: Props) {
 
   const probBar = isBinary && yesOption && noOption ? (
@@ -76,6 +77,7 @@ export default function IssueDetailClient({
           lmsrB={lmsrB}
           options={sortedOptions}
           tickets={tickets}
+          closesAt={closesAt}
         />
       </div>
 

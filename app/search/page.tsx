@@ -7,6 +7,20 @@ interface Props {
   searchParams: Promise<{ q?: string }>
 }
 
+// 한글 카테고리명 → DB enum 매핑
+const CATEGORY_MAP: Record<string, string> = {
+  '정치': 'politics',
+  '경제': 'economy',
+  '연예': 'entertainment',
+  '엔터': 'entertainment',
+  '스포츠': 'sports',
+  '테크': 'tech',
+  'it': 'tech',
+  'IT': 'tech',
+  '사회': 'social',
+  '기타': 'etc',
+}
+
 export default async function SearchPage({ searchParams }: Props) {
   const { q } = await searchParams
   const query = q?.trim() ?? ''
@@ -32,24 +46,43 @@ export default async function SearchPage({ searchParams }: Props) {
   let issues: Issue[] = []
 
   if (query) {
-    // 제목 검색 (ilike)
-    const { data: byTitle } = await supabase
-      .from('issues')
-      .select('*, issue_options!issue_options_issue_id_fkey(*)')
-      .eq('status', 'active')
-      .ilike('title', `%${query}%`)
-      .order('total_volume', { ascending: false })
+    // 카테고리 매핑 (한글 → enum)
+    const mappedCategory = CATEGORY_MAP[query] ?? CATEGORY_MAP[query.toLowerCase()] ?? null
 
-    // 태그 검색 (tags 배열에 포함)
-    const { data: byTag } = await supabase
-      .from('issues')
-      .select('*, issue_options!issue_options_issue_id_fkey(*)')
-      .eq('status', 'active')
-      .contains('tags', [query])
-      .order('total_volume', { ascending: false })
+    const [
+      { data: byTitle },
+      { data: byTag },
+      { data: byCategory },
+    ] = await Promise.all([
+      // 1) 제목 검색
+      supabase
+        .from('issues')
+        .select('*, issue_options!issue_options_issue_id_fkey(*)')
+        .eq('status', 'active')
+        .ilike('title', `%${query}%`)
+        .order('total_volume', { ascending: false }),
+
+      // 2) 태그 검색
+      supabase
+        .from('issues')
+        .select('*, issue_options!issue_options_issue_id_fkey(*)')
+        .eq('status', 'active')
+        .contains('tags', [query])
+        .order('total_volume', { ascending: false }),
+
+      // 3) 카테고리 검색 (한글 매핑 성공 시)
+      mappedCategory
+        ? supabase
+            .from('issues')
+            .select('*, issue_options!issue_options_issue_id_fkey(*)')
+            .eq('status', 'active')
+            .eq('category', mappedCategory)
+            .order('total_volume', { ascending: false })
+        : Promise.resolve({ data: [] }),
+    ])
 
     // 중복 제거 후 합치기
-    const merged = [...(byTitle ?? []), ...(byTag ?? [])]
+    const merged = [...(byTitle ?? []), ...(byTag ?? []), ...(byCategory ?? [])]
     const seen = new Set<string>()
     issues = merged.filter(i => {
       if (seen.has(i.id)) return false
@@ -65,7 +98,6 @@ export default async function SearchPage({ searchParams }: Props) {
       padding: '24px',
       boxSizing: 'border-box',
     }}>
-      {/* 검색 헤더 */}
       <div style={{ marginBottom: '24px' }}>
         {query ? (
           <>
@@ -83,12 +115,8 @@ export default async function SearchPage({ searchParams }: Props) {
         )}
       </div>
 
-      {/* 결과 없을 때 */}
       {query && issues.length === 0 && (
-        <div style={{
-          textAlign: 'center', padding: '80px 0',
-          color: '#9CA3AF', fontSize: '15px',
-        }}>
+        <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF', fontSize: '15px' }}>
           <div style={{ fontSize: '40px', marginBottom: '16px' }}>🔍</div>
           <p style={{ fontWeight: 600, color: '#555', marginBottom: '6px' }}>
             &quot;{query}&quot; 관련 이슈가 없어요
@@ -97,7 +125,6 @@ export default async function SearchPage({ searchParams }: Props) {
         </div>
       )}
 
-      {/* 검색 결과 그리드 */}
       {issues.length > 0 && <IssueGrid issues={issues} />}
     </div>
   )

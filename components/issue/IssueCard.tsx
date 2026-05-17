@@ -29,7 +29,19 @@ export default function IssueCard({ issue }: IssueCardProps) {
   const diffMs = closesAt.getTime() - now.getTime()
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-  const timeLeft = diffDays > 0 ? `${diffDays}일 후 마감` : diffHours > 0 ? `${diffHours}시간 후 마감` : '마감'
+
+  let timeLeft: string
+  let timeColor: string
+  if (diffMs <= 0) {
+    timeLeft = '마감'
+    timeColor = Colors.no
+  } else if (diffHours < 24) {
+    timeLeft = `${diffHours}시간 후 마감`
+    timeColor = Colors.no
+  } else {
+    timeLeft = `${diffDays}일 후 마감`
+    timeColor = Colors.textTertiary
+  }
 
   const emoji = CATEGORY_EMOJI[issue.category] ?? '🎲'
 
@@ -38,6 +50,7 @@ export default function IssueCard({ issue }: IssueCardProps) {
     <img
       src={issue.thumbnail_url}
       alt={issue.title}
+      referrerPolicy="no-referrer"
       style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', flexShrink: 0 }}
     />
   ) : (
@@ -70,7 +83,7 @@ export default function IssueCard({ issue }: IssueCardProps) {
       {/* 카테고리 + 마감 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <CategoryBadge category={issue.category} />
-        <span style={{ fontSize: '11px', color: Colors.textTertiary, fontWeight: 500 }}>{timeLeft}</span>
+        <span style={{ fontSize: '11px', color: timeColor, fontWeight: diffHours < 24 ? 700 : 500 }}>{timeLeft}</span>
       </div>
 
       {/* 썸네일 + 제목 */}

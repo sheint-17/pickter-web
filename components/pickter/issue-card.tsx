@@ -11,11 +11,10 @@ export interface Issue {
   title: string
   category: string
   categoryColor: string
-  daysLeft: number
-  // binary
+  timeLabel: string                        // "4시간 후 마감" | "1일 후 마감" | "마감" 등
+  urgent: 'none' | 'day' | 'hour'         // 색상 제어용
   pickPercent: number
   passPercent: number
-  // multi
   issueType: 'binary' | 'multi'
   options: { id: string; label: string; percent: number; order_index: number }[]
   totalParticipants: number
@@ -39,13 +38,26 @@ const categoryConfig: Record<string, { bg: string; text: string; emoji: string }
   사회:   { bg: "bg-orange-100", text: "text-orange-700", emoji: "🏙️" },
 }
 
+function timeColor(urgent: Issue['urgent']) {
+  if (urgent === 'hour') return '#EF4444'
+  return '#9CA3AF'
+}
+function timeBold(urgent: Issue['urgent']) {
+  return urgent === 'hour' ? 700 : 400
+}
+
 function Thumbnail({ url, emoji, size = 'md' }: { url?: string | null; emoji: string; size?: 'sm' | 'md' }) {
-  const dim = size === 'sm' ? 'w-8 h-8' : 'w-11 h-11'
+  const dim    = size === 'sm' ? 'w-8 h-8'   : 'w-11 h-11'
   const radius = size === 'sm' ? 'rounded-lg' : 'rounded-xl'
   if (url) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={url} alt="" className={`flex-shrink-0 ${dim} ${radius} object-cover`} />
+      <img
+        src={url} alt=""
+        referrerPolicy="no-referrer"
+        className={`flex-shrink-0 ${dim} ${radius}`}
+        style={{ objectFit: 'cover', objectPosition: 'center top' }}
+      />
     )
   }
   return (
@@ -55,7 +67,6 @@ function Thumbnail({ url, emoji, size = 'md' }: { url?: string | null; emoji: st
   )
 }
 
-// ── Binary 카드 바디 ────────────────────────────────────────────
 function BinaryBody({ issue }: { issue: Issue }) {
   return (
     <>
@@ -80,7 +91,7 @@ function BinaryBody({ issue }: { issue: Issue }) {
           <Users className="h-3.5 w-3.5" />
           <span>{issue.totalParticipants.toLocaleString()}명</span>
         </div>
-        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+        <div className="flex gap-1" onClick={e => e.stopPropagation()}>
           <Button size="sm" className="h-7 w-12 text-xs text-white hover:opacity-90" style={{ backgroundColor: '#00B37D' }}>픽</Button>
           <Button size="sm" variant="outline" className="h-7 w-12 text-xs hover:text-white"
             style={{ borderColor: '#FF4D6D', color: '#FF4D6D' }}
@@ -94,7 +105,6 @@ function BinaryBody({ issue }: { issue: Issue }) {
   )
 }
 
-// ── Multi 카드 바디 — 상위 2개 + 나머지 N개 표시 ─────────────────
 function MultiBody({ issue }: { issue: Issue }) {
   const sorted = [...issue.options].sort((a, b) => b.percent - a.percent)
   const top2 = sorted.slice(0, 2)
@@ -103,11 +113,10 @@ function MultiBody({ issue }: { issue: Issue }) {
   return (
     <>
       <div className="space-y-1.5">
-        {top2.map((opt) => (
+        {top2.map(opt => (
           <div key={opt.id} className="flex items-center gap-2">
             <span className="text-xs text-foreground font-medium truncate flex-1 min-w-0">{opt.label}</span>
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              {/* 미니 게이지 */}
               <div style={{ width: '60px', height: '4px', background: '#F0F0F0', borderRadius: '999px', overflow: 'hidden' }}>
                 <div style={{ width: `${opt.percent}%`, height: '100%', background: '#7B2FBE', borderRadius: '999px' }} />
               </div>
@@ -118,13 +127,12 @@ function MultiBody({ issue }: { issue: Issue }) {
           </div>
         ))}
       </div>
-
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Users className="h-3.5 w-3.5" />
           <span>{issue.totalParticipants.toLocaleString()}명</span>
           {rest > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-xs font-600" style={{ background: '#F5F0FF', color: '#7B2FBE' }}>
+            <span className="px-1.5 py-0.5 rounded-full text-xs" style={{ background: '#F5F0FF', color: '#7B2FBE' }}>
               +{rest}개 선택지
             </span>
           )}
@@ -137,7 +145,6 @@ function MultiBody({ issue }: { issue: Issue }) {
   )
 }
 
-// ── 메인 카드 ───────────────────────────────────────────────────
 export function IssueCard({ issue, variant = "default" }: IssueCardProps) {
   const config = categoryConfig[issue.category] || { bg: "bg-gray-100", text: "text-gray-700", emoji: "❓" }
 
@@ -153,7 +160,9 @@ export function IssueCard({ issue, variant = "default" }: IssueCardProps) {
             <p className="text-sm font-medium text-foreground truncate">{issue.title}</p>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <span className="text-xs text-muted-foreground">{issue.daysLeft}일 후 마감</span>
+            <span className="text-xs" style={{ color: timeColor(issue.urgent), fontWeight: timeBold(issue.urgent) }}>
+              {issue.timeLabel}
+            </span>
             {issue.issueType === 'binary' ? (
               <div className="flex items-center gap-2 text-xs">
                 <span className="font-semibold" style={{ color: '#00B37D' }}>픽 {issue.pickPercent}%</span>
@@ -174,15 +183,15 @@ export function IssueCard({ issue, variant = "default" }: IssueCardProps) {
     <Link href={`/issue/${issue.id}`} style={{ textDecoration: 'none', display: 'block', color: 'inherit' }}>
       <div className="issue-card group bg-card rounded-xl border border-border hover:shadow-md transition-all cursor-pointer overflow-hidden">
         <div className="p-4">
-          {/* 카테고리 + 마감일 */}
           <div className="flex items-center justify-between mb-3">
             <Badge variant="secondary" className={cn("text-xs font-medium", config.bg, config.text)}>
               {issue.category}
             </Badge>
-            <span className="text-xs text-muted-foreground">{issue.daysLeft}일 후 마감</span>
+            <span className="text-xs" style={{ color: timeColor(issue.urgent), fontWeight: timeBold(issue.urgent) }}>
+              {issue.timeLabel}
+            </span>
           </div>
 
-          {/* 썸네일 + 제목 */}
           <div className="flex items-start gap-3 mb-4">
             <Thumbnail url={issue.thumbnailUrl} emoji={config.emoji} size="md" />
             <h3 className="text-base font-bold text-foreground line-clamp-2 flex-1 leading-snug">
@@ -190,12 +199,7 @@ export function IssueCard({ issue, variant = "default" }: IssueCardProps) {
             </h3>
           </div>
 
-          {/* binary / multi 분기 */}
-          {issue.issueType === 'binary' ? (
-            <BinaryBody issue={issue} />
-          ) : (
-            <MultiBody issue={issue} />
-          )}
+          {issue.issueType === 'binary' ? <BinaryBody issue={issue} /> : <MultiBody issue={issue} />}
         </div>
       </div>
     </Link>
