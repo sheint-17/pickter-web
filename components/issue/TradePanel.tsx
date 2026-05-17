@@ -45,7 +45,7 @@ function calcPriceAfter(currentShares: number[], optionIdx: number, deltaShares:
 }
 
 export default function TradePanel({ issueId, issueType, lmsrB, options: initialOptions, tickets: initialTickets, closesAt }: TradePanelProps) {
-  const mode = 'buy' // [SELL-DISABLED] 매도 비활성화 — 재활성화 시 useState<'buy' | 'sell'>('buy') 로 교체
+  const [mode, setMode] = useState<'pick' | 'run'>('pick')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
@@ -69,11 +69,22 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
   }, [toast])
 
   const sorted = [...options].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
-  // const hasTickets = tickets.length > 0 // [SELL-DISABLED]
+  const hasTickets = tickets.length > 0
   const selectedOption = sorted.find(o => o.id === selectedId)
   const selectedOptionIdx = sorted.findIndex(o => o.id === selectedId)
-  const selectedTicket = tickets.find(t => t.option_id === selectedId)
   const currentShares = sorted.map(o => Number(o.shares) ?? 0)
+
+  // RUN: 이슈 내 전체 보유 포인트 합산 (원금 기준)
+  const totalInvested = tickets.reduce((sum, t) => {
+    const opt = sorted.find(o => o.id === t.option_id)
+    if (!opt) return sum
+    // avg_price × quantity ≈ 원금 근사값, trades에서 실제 point_amount 합산이 정확하나
+    // UI 표시용으로 avg_price 기반 근사 사용
+    return sum + Math.round(Number(t.avg_price) * Number(t.quantity))
+  }, 0)
+  const runRefund = Math.floor(totalInvested * 0.75)
+  const runPenalty = totalInvested - runRefund
+  const isBothSides = tickets.length > 1
 
   async function fetchOptions() {
     const { data } = await supabase
@@ -98,23 +109,19 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
 
   useEffect(() => { fetchUserData(); fetchOptions() }, [])
 
-  async function handleTrade() {
+  // PICK 참여
+  async function handlePick() {
     if (submitLockRef.current) return
     if (!selectedId || !amount) return
 
     const inputVal = parseInt(amount)
-    if (Number.isNaN(inputVal) || inputVal <= 0) { setError('올바른 수량을 입력해주세요'); return }
-    if (inputVal < 1) { setError('최소 1P 이상 입력해주세요'); return }
+    if (Number.isNaN(inputVal) || inputVal < 1) { setError('최소 1P 이상 입력해주세요'); return }
 
     const remaining = new Date(closesAt).getTime() - Date.now()
     if (remaining <= 60 * 60 * 1000) {
       setError('마감 1시간 전부터는 참여가 불가해요.')
       return
     }
-
-    // [SELL-DISABLED] 매도 로직 비활성화
-    // if (mode === 'sell') { ... }
-    const rpcPointAmount = inputVal
 
     submitLockRef.current = true
     setLoading(true); setError('')
@@ -127,8 +134,8 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
         p_user_id: user.id,
         p_issue_id: issueId,
         p_option_id: selectedId,
-        p_trade_type: mode,
-        p_point_amount: rpcPointAmount,
+        p_trade_type: 'buy',
+        p_point_amount: inputVal,
         p_user_ip: null,
       })
 
@@ -137,7 +144,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
         return
       }
       if (rpcData && rpcData.success === false) {
-        setError(rpcData.error ?? '거래 실패')
+        setError(rpcData.error ?? '참여 실패')
         return
       }
 
@@ -152,30 +159,79 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
     }
   }
 
-  // 미리보기
-  const slippagePreview = (() => {
-    if (!selectedOption || selectedOptionIdx < 0) return null
+  // RUN — 이슈 내 모든 티켓 일괄 처리
+  async function handleRun() {
+    if (submitLockRef.current) return
+    if (tickets.length === 0) return
+
+    submitLockRef.current = true
+    setLoading(true); setError('')
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setError('로그인이 필요해요'); return }
+
+      // 보유 중인 모든 선택지에 대해 순차 처리
+      for (const ticket of tickets) {
+        const heldQty = Math.floor(Number(ticket.quantity))
+        if (heldQty < 1) continue
+
+        const { data: rpcData, error: tradeError } = await supabase.rpc('execute_trade', {
+          p_user_id: user.id,
+          p_issue_id: issueId,
+          p_option_id: ticket.option_id,
+          p_trade_type: 'sell',
+          p_point_amount: heldQty,
+          p_user_ip: null,
+        })
+
+        if (tradeError) {
+          setError(tradeError.message.replace(/(\d+\.\d+)/g, m => Math.floor(parseFloat(m)).toString()))
+          setLoading(false)
+          submitLockRef.current = false
+          return
+        }
+        if (rpcData && rpcData.success === false) {
+          setError(rpcData.error ?? '런 실패')
+          setLoading(false)
+          submitLockRef.current = false
+          return
+        }
+      }
+
+      await fetchUserData()
+      await fetchOptions()
+      setMode('pick')
+      setToast('런 완료. 포인트가 돌아왔어요.')
+    } finally {
+      setLoading(false)
+      submitLockRef.current = false
+    }
+  }
+
+  // PICK 미리보기
+  const pickPreview = (() => {
+    if (mode !== 'pick' || !selectedOption || selectedOptionIdx < 0) return null
     const pts = parseInt(amount)
     if (!pts || pts <= 0) return null
 
-    if (true) { // mode === 'buy' 고정 [SELL-DISABLED]
-      const estPickets = calcPicketsFromPoints(currentShares, selectedOptionIdx, pts, lmsrB)
-      const priceBefore = prices[selectedOption.id] ?? selectedOption.price
-      const priceAfter = calcPriceAfter(currentShares, selectedOptionIdx, estPickets, lmsrB)
-      const priceDiff = Math.round((priceAfter - priceBefore) * 100)
-      const estPayout = Math.floor(estPickets)
-      return {
-        mode: 'buy' as const,
-        estPayout,
-        profit: estPayout - pts,
-        odds: pts > 0 ? estPayout / pts : 0,
-        priceBefore: Math.round(priceBefore * 100),
-        priceAfter: Math.round(priceAfter * 100),
-        priceDiff,
-        isHighImpact: Math.abs(priceDiff) >= 5,
-      }
-    } // [SELL-DISABLED] else { 매도 미리보기 } 제거
+    const estPickets = calcPicketsFromPoints(currentShares, selectedOptionIdx, pts, lmsrB)
+    const priceBefore = prices[selectedOption.id] ?? selectedOption.price
+    const priceAfter = calcPriceAfter(currentShares, selectedOptionIdx, estPickets, lmsrB)
+    const priceDiff = Math.round((priceAfter - priceBefore) * 100)
+    const estPayout = Math.floor(estPickets)
+    return {
+      estPayout,
+      profit: estPayout - pts,
+      odds: pts > 0 ? estPayout / pts : 0,
+      priceBefore: Math.round(priceBefore * 100),
+      priceAfter: Math.round(priceAfter * 100),
+      priceDiff,
+      isHighImpact: Math.abs(priceDiff) >= 5,
+    }
   })()
+
+  const isBinary = issueType === 'binary'
 
   return (
     <div style={{ border: '1px solid #E5E7EB', borderRadius: '16px', padding: '20px', background: Colors.white }}>
@@ -193,130 +249,208 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
         </div>
       )}
 
-      {/* [SELL-DISABLED] 매수/매도 탭 제거 — 재활성화 시 주석 해제
+      {/* PICK / RUN 탭 */}
       <div style={{ display: 'flex', marginBottom: '16px', background: '#F0F0F0', borderRadius: '10px', padding: '3px', gap: '3px' }}>
-        <button onClick={() => { setMode('buy'); setSelectedId(null); setAmount('') }} ...>매수</button>
-        {hasTickets && <button onClick={() => { setMode('sell'); ... }}>매도</button>}
-      </div>
-      */}
-
-      {/* 선택지 버튼들 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-        {sorted.map(opt => {
-          const isBinary = issueType === 'binary'
-          const isYes = opt.option_type === 'yes'
-          const isNo  = opt.option_type === 'no'
-          const ticket = tickets.find(t => t.option_id === opt.id)
-
-          let percent: number
-          if (isBinary) {
-            const yesOpt = sorted.find(o => o.option_type === 'yes')
-            const yesPercent = yesOpt ? Math.round((prices[yesOpt.id] ?? 0.5) * 100) : 50
-            percent = isYes ? yesPercent : (100 - yesPercent)
-          } else {
-            const totalPrice = sorted.reduce((s, o) => s + (prices[o.id] ?? 0.5), 0) || 1
-            percent = Math.round(((prices[opt.id] ?? 0.5) / totalPrice) * 100)
-          }
-
-          const activeColor = isBinary ? (isYes ? Colors.yes : isNo ? Colors.no : Colors.primary) : Colors.primary
-          const isSelected = selectedId === opt.id
-
-          return (
-            <button key={opt.id} onClick={() => setSelectedId(opt.id)}
-              style={{
-                width: '100%', padding: '14px 16px',
-                background: isSelected ? activeColor : `${activeColor}18`,
-                color: isSelected ? Colors.white : activeColor,
-                border: `2px solid ${activeColor}`, borderRadius: '12px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.15s',
-              }}>
-              <span style={{ fontSize: '15px', fontWeight: 700 }}>
-                {isBinary ? (isYes ? '픽' : '패스') : opt.label}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {/* [SELL-DISABLED] 매수 시 확률 표시 제거 */}
-                <span style={{ fontSize: '16px', fontWeight: 800 }}>{percent}%</span>
-              </div>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* [SELL-DISABLED] 매도 보유 정보 블록 비활성화 */}
-
-      {/* 금액 입력 */}
-      <div style={{ marginBottom: '8px' }}>
-        <input type="number" value={amount} onChange={e => {
-            const val = e.target.value
-            // [SELL-DISABLED] 매도 상한 체크 제거
-            setAmount(val)
-          }}
-          placeholder='참여할 포인트(P) 입력'
-          style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '16px', boxSizing: 'border-box', outline: 'none' }} />
-      </div>
-
-      {/* 빠른 입력 */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-        {[10, 50, 100].map(v => (
-          <button key={v} onClick={() => setAmount(String(parseInt(amount || '0') + v))}
-            style={{ flex: 1, padding: '6px 12px', background: '#F9F9F9', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', color: Colors.textSecondary }}>
-            +{v.toLocaleString()}P
+        <button
+          onClick={() => { setMode('pick'); setSelectedId(null); setAmount('') }}
+          style={{
+            flex: 1, padding: '9px',
+            background: mode === 'pick' ? Colors.white : 'transparent',
+            color: mode === 'pick' ? Colors.primary : Colors.textTertiary,
+            border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 700,
+            cursor: 'pointer', transition: 'all 0.15s',
+          }}>
+          PICK
+        </button>
+        {hasTickets && (
+          <button
+            onClick={() => { setMode('run'); setSelectedId(null); setAmount('') }}
+            style={{
+              flex: 1, padding: '9px',
+              background: mode === 'run' ? '#FCEBEB' : 'transparent',
+              color: mode === 'run' ? '#A32D2D' : Colors.textTertiary,
+              border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 700,
+              cursor: 'pointer', transition: 'all 0.15s',
+            }}>
+            RUN
           </button>
-        ))}
+        )}
       </div>
 
-      {/* 미리보기 */}
-      {slippagePreview && (
-        <div style={{
-          background: slippagePreview.mode === 'buy' && slippagePreview.isHighImpact ? '#FFF7ED' : '#F8F9FA',
-          border: `1px solid ${slippagePreview.mode === 'buy' && slippagePreview.isHighImpact ? '#FED7AA' : '#E5E7EB'}`,
-          borderRadius: '10px', padding: '12px', marginBottom: '16px',
-        }}>
-          {true ? ( // mode === 'buy' 고정 [SELL-DISABLED]
-            <>
+      {/* ── PICK 탭 ── */}
+      {mode === 'pick' && (
+        <>
+          {/* 선택지 버튼들 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+            {sorted.map(opt => {
+              const isYes = opt.option_type === 'yes'
+              const isNo  = opt.option_type === 'no'
+
+              let percent: number
+              if (isBinary) {
+                const yesOpt = sorted.find(o => o.option_type === 'yes')
+                const yesPercent = yesOpt ? Math.round((prices[yesOpt.id] ?? 0.5) * 100) : 50
+                percent = isYes ? yesPercent : (100 - yesPercent)
+              } else {
+                const totalPrice = sorted.reduce((s, o) => s + (prices[o.id] ?? 0.5), 0) || 1
+                percent = Math.round(((prices[opt.id] ?? 0.5) / totalPrice) * 100)
+              }
+
+              const activeColor = isBinary ? (isYes ? Colors.yes : isNo ? Colors.no : Colors.primary) : Colors.primary
+              const isSelected = selectedId === opt.id
+
+              return (
+                <button key={opt.id} onClick={() => setSelectedId(opt.id)}
+                  style={{
+                    width: '100%', padding: '14px 16px',
+                    background: isSelected ? activeColor : `${activeColor}18`,
+                    color: isSelected ? Colors.white : activeColor,
+                    border: `2px solid ${activeColor}`, borderRadius: '12px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.15s',
+                  }}>
+                  <span style={{ fontSize: '15px', fontWeight: 700 }}>
+                    {isBinary ? (isYes ? '픽' : '패스') : opt.label}
+                  </span>
+                  <span style={{ fontSize: '16px', fontWeight: 800 }}>{percent}%</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* 금액 입력 */}
+          <div style={{ marginBottom: '8px' }}>
+            <input
+              type="number" value={amount}
+              onChange={e => setAmount(e.target.value)}
+              placeholder="참여할 포인트(P) 입력"
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '16px', boxSizing: 'border-box', outline: 'none' }}
+            />
+          </div>
+
+          {/* 빠른 입력 */}
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+            {[10, 50, 100].map(v => (
+              <button key={v} onClick={() => setAmount(String(parseInt(amount || '0') + v))}
+                style={{ flex: 1, padding: '6px 12px', background: '#F9F9F9', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', color: Colors.textSecondary }}>
+                +{v.toLocaleString()}P
+              </button>
+            ))}
+          </div>
+
+          {/* PICK 미리보기 */}
+          {pickPreview && (
+            <div style={{
+              background: pickPreview.isHighImpact ? '#FFF7ED' : '#F8F9FA',
+              border: `1px solid ${pickPreview.isHighImpact ? '#FED7AA' : '#E5E7EB'}`,
+              borderRadius: '10px', padding: '12px', marginBottom: '16px',
+            }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <span style={{ fontSize: '12px', color: Colors.textTertiary }}>참여</span>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.textPrimary }}>{parseInt(amount).toLocaleString()}P</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <span style={{ fontSize: '12px', color: Colors.textTertiary }}>배당률</span>
-                <span style={{ fontSize: '12px', fontWeight: 800, color: Colors.textPrimary }}>×{slippagePreview.odds.toFixed(2)}배</span>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: Colors.textPrimary }}>×{pickPreview.odds.toFixed(2)}배</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <span style={{ fontSize: '12px', color: Colors.textTertiary }}>맞추면</span>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: Colors.yes }}>
-                  {slippagePreview.estPayout.toLocaleString()}P
-                  <span style={{ color: Colors.textTertiary, fontWeight: 400 }}> (+{slippagePreview.profit.toLocaleString()}P)</span>
+                  {pickPreview.estPayout.toLocaleString()}P
+                  <span style={{ color: Colors.textTertiary, fontWeight: 400 }}> (+{pickPreview.profit.toLocaleString()}P)</span>
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '12px', color: Colors.textTertiary }}>확률 변화</span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: slippagePreview.isHighImpact ? '#EA580C' : Colors.textSecondary }}>
-                  {slippagePreview.priceBefore}% → {slippagePreview.priceAfter}%
-                  <span style={{ fontWeight: 400, color: Colors.textTertiary }}> ({slippagePreview.priceDiff >= 0 ? '+' : ''}{slippagePreview.priceDiff}%p)</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: pickPreview.isHighImpact ? '#EA580C' : Colors.textSecondary }}>
+                  {pickPreview.priceBefore}% → {pickPreview.priceAfter}%
+                  <span style={{ fontWeight: 400, color: Colors.textTertiary }}> ({pickPreview.priceDiff >= 0 ? '+' : ''}{pickPreview.priceDiff}%p)</span>
                 </span>
               </div>
-              {slippagePreview.isHighImpact && (
-                <p style={{ fontSize: '11px', color: '#EA580C', margin: '8px 0 0', fontWeight: 600 }}>⚠️ 이 거래로 확률이 크게 변합니다</p>
+              {pickPreview.isHighImpact && (
+                <p style={{ fontSize: '11px', color: '#EA580C', margin: '8px 0 0', fontWeight: 600 }}>⚠️ 이 참여로 확률이 크게 변합니다</p>
               )}
-            </>
-          ) : null /* [SELL-DISABLED] 매도 미리보기 제거 */}
-        </div>
+            </div>
+          )}
+
+          {error && <p style={{ color: Colors.no, fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
+
+          {/* PICK 버튼 */}
+          {selectedOption && (
+            <button onClick={handlePick} disabled={loading}
+              style={{
+                width: '100%', padding: '16px',
+                background: isBinary ? (selectedOption.option_type === 'yes' ? Colors.yes : Colors.no) : Colors.primary,
+                color: Colors.white, border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 700,
+                cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, marginTop: '4px',
+              }}>
+              {loading ? '처리 중...' : `${isBinary ? (selectedOption.option_type === 'yes' ? '픽' : '패스') : selectedOption.label} ${amount || 0}P 참여`}
+            </button>
+          )}
+        </>
       )}
 
-      {error && <p style={{ color: Colors.no, fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
+      {/* ── RUN 탭 ── */}
+      {mode === 'run' && (
+        <>
+          {/* 경고 문구 */}
+          <div style={{ background: '#FCEBEB', border: '0.5px solid #F09595', borderRadius: '10px', padding: '12px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+              <span style={{ fontSize: '16px', flexShrink: 0 }}>⚠️</span>
+              <div>
+                <p style={{ fontSize: '13px', color: '#791F1F', margin: '0 0 2px', fontWeight: 700 }}>
+                  런하면 {runPenalty.toLocaleString()}P가 소멸됩니다.
+                </p>
+                <p style={{ fontSize: '12px', color: '#A32D2D', margin: 0 }}>
+                  소신이 있다면 버텨보세요!
+                </p>
+              </div>
+            </div>
+          </div>
 
-      {/* 실행 버튼 */}
-      {selectedOption && (
-        <button onClick={handleTrade} disabled={loading}
-          style={{
-            width: '100%', padding: '16px',
-            background: issueType === 'binary' ? (selectedOption.option_type === 'yes' ? Colors.yes : Colors.no) : Colors.primary,
-            color: Colors.white, border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 700,
-            cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, marginTop: '4px',
-          }}>
-          {loading ? '처리 중...' : `${selectedOption.label || (selectedOption.option_type === 'yes' ? '픽' : '패스')} ${amount || 0}P 참여`}
-        </button>
+          {/* 보유 현황 */}
+          <div style={{ background: '#F8F9FA', borderRadius: '10px', padding: '12px 14px', marginBottom: '14px' }}>
+            {tickets.map(t => {
+              const opt = sorted.find(o => o.id === t.option_id)
+              const invested = Math.round(Number(t.avg_price) * Number(t.quantity))
+              const label = opt ? (isBinary ? (opt.option_type === 'yes' ? '픽' : '패스') : opt.label) : '-'
+              return (
+                <div key={t.option_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '13px', color: Colors.textSecondary }}>{label} 참여</span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: Colors.textPrimary }}>{invested.toLocaleString()}P</span>
+                </div>
+              )
+            })}
+            <div style={{ borderTop: '0.5px solid #E5E7EB', marginTop: '6px', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: Colors.textSecondary }}>총 참여</span>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: Colors.textPrimary }}>{totalInvested.toLocaleString()}P</span>
+            </div>
+          </div>
+
+          {/* 환급 계산 */}
+          <div style={{ border: '0.5px solid #E5E7EB', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '0.5px solid #E5E7EB', marginBottom: '8px' }}>
+              <span style={{ fontSize: '13px', color: Colors.textSecondary }}>돌려받는 포인트</span>
+              <span style={{ fontSize: '16px', fontWeight: 700, color: Colors.textPrimary }}>{runRefund.toLocaleString()}P</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '13px', color: Colors.textSecondary }}>소멸되는 포인트</span>
+              <span style={{ fontSize: '16px', fontWeight: 700, color: Colors.no }}>-{runPenalty.toLocaleString()}P</span>
+            </div>
+          </div>
+
+          {error && <p style={{ color: Colors.no, fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
+
+          {/* RUN 버튼 */}
+          <button onClick={handleRun} disabled={loading}
+            style={{
+              width: '100%', padding: '16px',
+              background: '#A32D2D',
+              color: Colors.white, border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 700,
+              cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
+            }}>
+            {loading ? '처리 중...' : isBothSides ? '이 방에서 완전히 런하기' : '패널티 감수하고 런하기'}
+          </button>
+        </>
       )}
 
       {balance !== null && (

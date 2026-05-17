@@ -23,8 +23,11 @@ export default function PickterGuide() {
       title: '정답 시 투자금 × 배당률 수령',
       desc: '정답이 확정되면 투자한 포인트에 배당률을 곱한 만큼 받아요. 오답이면 투자금은 돌아오지 않아요.',
     },
-    // [SELL-DISABLED]
-    // { icon: '🔄', title: '정산 전에 매도할 수 있어요', desc: '...' },
+    {
+      icon: '🏃',
+      title: 'RUN — 패널티 감수하고 나갈 수 있어요',
+      desc: '마음이 바보면 RUN 탭에서 런할 수 있어요. 단, 참여 포인트의 25%가 패널티로 소멸돼요. 신중하게 PICK 하세요!',
+    },
   ]
 
   return (
