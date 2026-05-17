@@ -103,21 +103,34 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
     if (userData) setBalance(userData.point_balance)
     if (ticketData) setTickets(ticketData)
 
-    // 실제 순투입 포인트: buy - sell 합산
+    // 실제 순투입 포인트: 가장 최근 런(마지막 sell) 이후의 buy만 합산
     const { data: tradeData } = await supabase
       .from('trades')
-      .select('option_id, trade_type, point_amount')
+      .select('option_id, trade_type, point_amount, created_at')
       .eq('user_id', user.id)
       .eq('issue_id', issueId)
+      .order('created_at', { ascending: true })
 
     if (tradeData) {
       const invested: Record<string, number> = {}
+      // option_id별로 마지막 sell 이후의 buy만 합산
+      const lastSellAt: Record<string, string> = {}
       for (const t of tradeData) {
-        if (!invested[t.option_id]) invested[t.option_id] = 0
-        invested[t.option_id] += t.trade_type === 'buy' ? t.point_amount : -t.point_amount
+        if (t.trade_type === 'sell') {
+          lastSellAt[t.option_id] = t.created_at
+          invested[t.option_id] = 0  // 런 시점에 리셋
+        }
       }
-      // 0 이하는 런 후 완전 청산된 것 — 제거
-      Object.keys(invested).forEach(k => { if (invested[k] <= 0) delete invested[k] })
+      for (const t of tradeData) {
+        if (t.trade_type === 'buy') {
+          const lastSell = lastSellAt[t.option_id]
+          if (!lastSell || t.created_at > lastSell) {
+            // 마지막 런 이후에 다시 참여한 것만 합산
+            invested[t.option_id] = (invested[t.option_id] ?? 0) + t.point_amount
+          }
+        }
+      }
+      Object.keys(invested).forEach(k => { if ((invested[k] ?? 0) <= 0) delete invested[k] })
       setNetInvested(invested)
     }
   }
