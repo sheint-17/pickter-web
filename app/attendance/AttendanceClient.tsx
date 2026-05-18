@@ -20,7 +20,7 @@ export default function AttendanceClient({
   const [done, setDone] = useState(checkedInToday)
   const [streak, setStreak] = useState(initialStreak)
   const [attended, setAttended] = useState(new Set(initialAttended))
-  const [reward, setReward] = useState<{ rpGiven: number; isWeekBonus: boolean } | null>(null)
+  const [reward, setReward] = useState<{ rpGiven: number; pointGiven: number; isWeekBonus: boolean } | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -33,7 +33,7 @@ export default function AttendanceClient({
         setDone(true)
         setStreak(res.streak)
         setAttended(prev => new Set([...prev, today]))
-        setReward({ rpGiven: res.rpGiven!, isWeekBonus: res.isWeekBonus! })
+        setReward({ rpGiven: res.rpGiven!, pointGiven: res.pointGiven ?? 0, isWeekBonus: res.isWeekBonus! })
       } else {
         setErrorMsg(res.error ?? '오류가 발생했어요')
       }
@@ -45,11 +45,7 @@ export default function AttendanceClient({
   return (
     <main style={{ padding: '16px', maxWidth: '480px', margin: '0 auto' }}>
 
-      {/* 헤더 */}
-      <h1 style={{
-        fontSize: '20px', fontWeight: 800, color: Colors.textPrimary,
-        marginBottom: '4px',
-      }}>
+      <h1 style={{ fontSize: '20px', fontWeight: 800, color: Colors.textPrimary, marginBottom: '4px' }}>
         출석 체크
       </h1>
       <p style={{ fontSize: '13px', color: Colors.textTertiary, marginBottom: '20px', marginTop: 0 }}>
@@ -59,33 +55,20 @@ export default function AttendanceClient({
       {/* 연속 출석 카드 */}
       <div style={{
         background: done ? Colors.primary : Colors.white,
-        borderRadius: '20px',
-        padding: '28px 24px',
-        marginBottom: '16px',
+        borderRadius: '20px', padding: '28px 24px', marginBottom: '16px',
         border: done ? 'none' : `1px solid ${Colors.border}`,
-        textAlign: 'center',
-        transition: 'background 0.3s',
+        textAlign: 'center', transition: 'background 0.3s',
       }}>
-        <p style={{ fontSize: '40px', margin: '0 0 4px' }}>
-          {done ? '🔥' : '💤'}
-        </p>
-        <p style={{
-          fontSize: '36px', fontWeight: 900, margin: '0 0 4px',
-          color: done ? Colors.white : Colors.primary,
-        }}>
+        <p style={{ fontSize: '40px', margin: '0 0 4px' }}>{done ? '🔥' : '💤'}</p>
+        <p style={{ fontSize: '36px', fontWeight: 900, margin: '0 0 4px', color: done ? Colors.white : Colors.primary }}>
           {streak}일
         </p>
-        <p style={{
-          fontSize: '14px', fontWeight: 600, margin: 0,
-          color: done ? 'rgba(255,255,255,0.8)' : Colors.textSecondary,
-        }}>
+        <p style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: done ? 'rgba(255,255,255,0.8)' : Colors.textSecondary }}>
           연속 출석
         </p>
 
         {/* 7일 진척도 */}
-        <div style={{
-          display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px',
-        }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
           {last7Days.map((date, i) => {
             const isAttended = attended.has(date)
             const isToday = date === today
@@ -98,17 +81,12 @@ export default function AttendanceClient({
                     : (done ? 'rgba(255,255,255,0.2)' : Colors.background),
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '14px',
-                  border: isToday && !isAttended
-                    ? `2px solid ${done ? 'white' : Colors.primary}`
-                    : 'none',
+                  border: isToday && !isAttended ? `2px solid ${done ? 'white' : Colors.primary}` : 'none',
                   transition: 'background 0.3s',
                 }}>
                   {isAttended ? '✓' : ''}
                 </div>
-                <span style={{
-                  fontSize: '10px',
-                  color: done ? 'rgba(255,255,255,0.6)' : Colors.textTertiary,
-                }}>
+                <span style={{ fontSize: '10px', color: done ? 'rgba(255,255,255,0.6)' : Colors.textTertiary }}>
                   {dayLabels[new Date(date + 'T12:00:00').getDay() === 0 ? 6 : new Date(date + 'T12:00:00').getDay() - 1]}
                 </span>
               </div>
@@ -116,12 +94,8 @@ export default function AttendanceClient({
           })}
         </div>
 
-        {/* 7일 보너스 안내 */}
-        <p style={{
-          fontSize: '12px', marginTop: '12px', marginBottom: 0,
-          color: done ? 'rgba(255,255,255,0.7)' : Colors.textTertiary,
-        }}>
-          7일 연속 출석 시 +10 RP 보너스
+        <p style={{ fontSize: '12px', marginTop: '12px', marginBottom: 0, color: done ? 'rgba(255,255,255,0.7)' : Colors.textTertiary }}>
+          7일 연속 출석 시 +10 RP 보너스 + 50P 지급
         </p>
       </div>
 
@@ -138,9 +112,14 @@ export default function AttendanceClient({
           </p>
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: Colors.textSecondary }}>
             {reward.isWeekBonus
-              ? `+3 RP + 보너스 +10 RP = +${reward.rpGiven} RP 지급`
+              ? `+${reward.rpGiven} RP + ${reward.pointGiven}P 지급`
               : `+${reward.rpGiven} RP 지급`}
           </p>
+          {reward.pointGiven > 0 && !reward.isWeekBonus && (
+            <p style={{ margin: '4px 0 0', fontSize: '13px', color: Colors.textSecondary }}>
+              +{reward.pointGiven}P 지급 (파산 구제 보너스)
+            </p>
+          )}
         </div>
       )}
 
@@ -165,8 +144,7 @@ export default function AttendanceClient({
           border: done ? `1px solid ${Colors.border}` : 'none',
           borderRadius: '14px', fontSize: '16px', fontWeight: 700,
           cursor: done || isPending ? 'not-allowed' : 'pointer',
-          opacity: isPending ? 0.7 : 1,
-          transition: 'all 0.2s',
+          opacity: isPending ? 0.7 : 1, transition: 'all 0.2s',
         }}
       >
         {isPending ? '처리 중...' : done ? '오늘 출석 완료 ✓' : '출석하기 +3 RP'}
@@ -177,6 +155,32 @@ export default function AttendanceClient({
           매일 자정 초기화 · 7일 연속 달성 시 +10 RP 추가 지급
         </p>
       )}
+
+      {/* 출석 보상 안내 */}
+      <div style={{
+        marginTop: '24px', background: Colors.white,
+        borderRadius: '16px', padding: '18px 20px',
+        border: `1px solid ${Colors.border}`,
+      }}>
+        <p style={{ fontSize: '14px', fontWeight: 700, color: Colors.textPrimary, margin: '0 0 12px' }}>
+          출석 보상 안내
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {[
+            { icon: '📅', label: '매일 출석', reward: 'RP +3' },
+            { icon: '🔥', label: '7일 연속 출석', reward: 'RP +13 + 포인트 +50P' },
+            { icon: '🆘', label: '잔액 10P 미만 시', reward: '포인트 +10P (파산 구제)' },
+          ].map((item) => (
+            <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '16px' }}>{item.icon}</span>
+                <span style={{ fontSize: '13px', color: Colors.textSecondary }}>{item.label}</span>
+              </div>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: Colors.primary }}>{item.reward}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
     </main>
   )

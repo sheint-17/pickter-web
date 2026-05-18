@@ -8,6 +8,7 @@ export async function checkIn(): Promise<{
   success: boolean
   error?: string
   rpGiven?: number
+  pointGiven?: number
   streak?: number
   isWeekBonus?: boolean
 }> {
@@ -30,11 +31,6 @@ export async function checkIn(): Promise<{
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: '로그인이 필요해요' }
 
-  // 모든 출석 처리 로직은 check_in_today RPC 1개로 통합 (C5)
-  //   - 서버 timezone(Asia/Seoul) 기준 today
-  //   - users FOR UPDATE 잠금 → 동시 호출 race 차단
-  //   - attendance UNIQUE + idempotency_key 두 겹 방어
-  //   - RP 부여까지 같은 트랜잭션
   const { data, error } = await supabase.rpc('check_in_today', { p_user_id: user.id })
 
   if (error) {
@@ -53,6 +49,7 @@ export async function checkIn(): Promise<{
   return {
     success: true,
     rpGiven: data.rp_given,
+    pointGiven: data.point_given ?? 0,
     streak: data.streak,
     isWeekBonus: data.is_week_bonus,
   }
