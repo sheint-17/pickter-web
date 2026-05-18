@@ -62,6 +62,7 @@ export interface Issue {
   thumbnail_url?: string | null
   participant_count?: number
   total_volume?: number
+  source?: 'admin' | 'user'
   issue_options: IssueOption[]
 }
 

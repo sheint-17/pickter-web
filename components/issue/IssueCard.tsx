@@ -82,7 +82,16 @@ export default function IssueCard({ issue }: IssueCardProps) {
     >
       {/* 카테고리 + 마감 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <CategoryBadge category={issue.category} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <CategoryBadge category={issue.category} />
+          {issue.source === 'user' && (
+            <span style={{
+              fontSize: '11px', fontWeight: 500,
+              padding: '2px 8px', borderRadius: '20px',
+              background: '#EEEDFE', color: '#3C3489',
+            }}>유저 제안</span>
+          )}
+        </div>
         <span style={{ fontSize: '11px', color: timeColor, fontWeight: diffHours < 24 ? 700 : 500 }}>{timeLeft}</span>
       </div>
 
