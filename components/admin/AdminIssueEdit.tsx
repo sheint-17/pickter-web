@@ -24,6 +24,8 @@ export default function AdminIssueEdit({ issues }: { issues: Issue[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [closesAt, setClosesAt] = useState('')
+  const [resolutionRules, setResolutionRules] = useState('')
+  const [thumbnailUrl, setThumbnailUrl] = useState('')
   const [optionLabels, setOptionLabels] = useState<{ id: string; label: string }[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -33,6 +35,8 @@ export default function AdminIssueEdit({ issues }: { issues: Issue[] }) {
     setSelectedId(issue.id)
     setTitle(issue.title)
     setClosesAt(toLocalDatetimeValue(issue.closes_at))
+    setResolutionRules(issue.resolution_rules ?? '')
+    setThumbnailUrl(issue.thumbnail_url ?? '')
     setOptionLabels(
       [...(issue.issue_options ?? [])]
         .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
@@ -63,12 +67,14 @@ export default function AdminIssueEdit({ issues }: { issues: Issue[] }) {
     setError('')
     setSuccess(false)
 
-    // 이슈 제목·마감일 수정
+    // 이슈 제목·마감일·정산규칙·썸네일 수정
     const { error: issueErr } = await supabase
       .from('issues')
       .update({
         title,
         closes_at: new Date(closesAt).toISOString(),
+        resolution_rules: resolutionRules.trim() || null,
+        thumbnail_url: thumbnailUrl.trim() || null,
       })
       .eq('id', selectedId)
 
@@ -169,6 +175,36 @@ export default function AdminIssueEdit({ issues }: { issues: Issue[] }) {
                 value={closesAt}
                 onChange={e => setClosesAt(e.target.value)}
               />
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={labelStyle}>정산 기준</label>
+              <textarea
+                style={{ ...inputStyle, minHeight: '80px', resize: 'vertical', fontFamily: 'inherit' }}
+                value={resolutionRules}
+                onChange={e => setResolutionRules(e.target.value)}
+                placeholder="예) 영진위 통합전산망 기준 5월 25일 23:59 누적 관객 수"
+              />
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={labelStyle}>썸네일 URL</label>
+              <input
+                style={inputStyle}
+                value={thumbnailUrl}
+                onChange={e => setThumbnailUrl(e.target.value)}
+                placeholder="https://images.unsplash.com/..."
+              />
+              {thumbnailUrl && (
+                <div style={{ marginTop: '8px', borderRadius: '8px', overflow: 'hidden', border: `1px solid ${Colors.border}`, aspectRatio: '16/9', background: Colors.background }}>
+                  <img
+                    src={thumbnailUrl}
+                    alt="썸네일 미리보기"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                </div>
+              )}
             </div>
 
             <div style={{ marginBottom: '20px' }}>

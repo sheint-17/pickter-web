@@ -60,6 +60,7 @@ export interface Issue {
   closes_at: string
   created_at: string
   thumbnail_url?: string | null
+  resolution_rules?: string | null
   participant_count?: number
   total_volume?: number
   source?: 'admin' | 'user'
