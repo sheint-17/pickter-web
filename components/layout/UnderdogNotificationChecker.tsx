@@ -19,7 +19,17 @@ export function UnderdogNotificationChecker() {
   } | null>(null)
 
   useEffect(() => {
+    // 이미 로그인된 상태로 진입한 경우
     checkUnderdogNotification()
+
+    // 비로그인 → 로그인 시 감지
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        checkUnderdogNotification()
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   async function checkUnderdogNotification() {
