@@ -7,6 +7,7 @@ import { updateNickname, UpdateNicknameState } from '@/app/mypage/actions'
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const [redirecting, setRedirecting] = useState(false)
   const [state, formAction, isPending] = useActionState<UpdateNicknameState, FormData>(
     updateNickname,
     null
@@ -14,9 +15,26 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (state?.success) {
+      setRedirecting(true)
       router.replace('/')
     }
   }, [state, router])
+
+  if (redirecting) {
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: Colors.background,
+      }}>
+        <p style={{ fontSize: '16px', color: Colors.textTertiary, fontWeight: 600 }}>
+          픽터 시작하는 중...
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div style={{
@@ -91,20 +109,12 @@ export default function OnboardingPage() {
           />
 
           {state?.error && (
-            <p style={{
-              fontSize: '13px',
-              color: Colors.no,
-              margin: '0 0 12px',
-            }}>
+            <p style={{ fontSize: '13px', color: Colors.no, margin: '0 0 12px' }}>
               {state.error}
             </p>
           )}
 
-          <p style={{
-            fontSize: '12px',
-            color: Colors.textTertiary,
-            margin: '0 0 20px',
-          }}>
+          <p style={{ fontSize: '12px', color: Colors.textTertiary, margin: '0 0 20px' }}>
             한글·영문·숫자·밑줄(_) 사용 가능
           </p>
 
