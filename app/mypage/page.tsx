@@ -200,7 +200,7 @@ export default async function MyPage() {
       </div>
 
       {/* 픽터 리포트 */}
-      <PickterReport categoryStats={categoryStats} oracleCategories={oracleCategories} />
+      <PickterReport categoryStats={categoryStats} />
 
       {/* 리포트 공유 버튼 */}
       {totalCount > 0 && (
@@ -276,7 +276,7 @@ function BadgeSection({ badges }: { badges: UserBadge[] }) {
 
 type CategoryStat = { category: string; total: number; correct: number; rate: number }
 
-function PickterReport({ categoryStats, oracleCategories }: { categoryStats: CategoryStat[]; oracleCategories: CategoryStat[] }) {
+function PickterReport({ categoryStats }: { categoryStats: CategoryStat[] }) {
   return (
     <div style={{ marginTop: '8px' }}>
       <h2 style={{ fontSize: '18px', fontWeight: 700, color: Colors.textPrimary, marginBottom: '16px' }}>📈 픽터 리포트</h2>
@@ -307,19 +307,7 @@ function PickterReport({ categoryStats, oracleCategories }: { categoryStats: Cat
           })}
         </div>
       )}
-      <div style={{ background: oracleCategories.length > 0 ? Colors.primaryLight : Colors.background, borderRadius: '12px', padding: '14px 16px', border: `1px solid ${oracleCategories.length > 0 ? '#E0D0F8' : Colors.border}` }}>
-        {oracleCategories.length > 0 ? (
-          <>
-            <p style={{ fontSize: '13px', fontWeight: 700, color: Colors.primary, margin: '0 0 4px' }}>🔮 Oracle 배지 달성 조건 충족!</p>
-            <p style={{ fontSize: '12px', color: Colors.textSecondary, margin: 0 }}>{oracleCategories.map(s => CATEGORY_KO[s.category] ?? s.category).join(', ')} 카테고리에서 Oracle 자격을 갖췄어요</p>
-          </>
-        ) : (
-          <>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: Colors.textSecondary, margin: '0 0 4px' }}>🔮 Oracle 배지 조건</p>
-            <p style={{ fontSize: '12px', color: Colors.textTertiary, margin: 0 }}>한 카테고리에서 <strong>10회 이상</strong> 참여 + <strong>70% 이상</strong> 적중률</p>
-          </>
-        )}
-      </div>
+
     </div>
   )
 }

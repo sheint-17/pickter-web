@@ -77,17 +77,14 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
   const selectedOptionIdx = sorted.findIndex(o => o.id === selectedId)
   const currentShares = sorted.map(o => Number(o.shares) ?? 0)
 
-  // RUN: trades 기반 실제 순투입 포인트 (마지막 런 이후 buy 합산)
   const totalInvested = Object.values(netInvested).reduce((a, b) => a + b, 0)
 
-  // RUN 환급액: 픽켓 수량 × 현재확률 × 0.75 (RPC와 동일)
   const runRefund = tickets.reduce((sum, t) => {
     const currentPrice = prices[t.option_id] ?? 0
     const qty = Math.floor(Number(t.quantity))
     return sum + Math.floor(qty * currentPrice * 0.75)
   }, 0)
 
-  // 현재 가치: 픽켓 수량 × 현재확률 (패널티 전)
   const currentValue = tickets.reduce((sum, t) => {
     const currentPrice = prices[t.option_id] ?? 0
     const qty = Math.floor(Number(t.quantity))
@@ -118,7 +115,6 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
     if (userData) setBalance(userData.point_balance)
     if (ticketData) setTickets(ticketData)
 
-    // 실제 순투입: 마지막 런(sell) 이후의 buy만 합산
     const { data: tradeData } = await supabase
       .from('trades')
       .select('option_id, trade_type, point_amount, created_at')
@@ -253,6 +249,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
     const priceAfter = calcPriceAfter(currentShares, selectedOptionIdx, estPickets, lmsrB)
     const priceDiff = Math.round((priceAfter - priceBefore) * 100)
     const estPayout = Math.floor(estPickets)
+    const isUnderdog = priceBefore < 0.3
     return {
       estPayout,
       profit: estPayout - pts,
@@ -261,6 +258,7 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
       priceAfter: Math.round(priceAfter * 100),
       priceDiff,
       isHighImpact: Math.abs(priceDiff) >= 5,
+      isUnderdog,
     }
   })()
 
@@ -366,6 +364,14 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
               {pickPreview.isHighImpact && (
                 <p style={{ fontSize: '11px', color: '#EA580C', margin: '8px 0 0', fontWeight: 600 }}>⚠️ 이 참여로 확률이 크게 변합니다</p>
               )}
+              {pickPreview.isUnderdog && (
+                <div style={{ marginTop: '8px', padding: '8px 10px', background: 'rgba(123,47,190,0.08)', border: '1px solid rgba(123,47,190,0.25)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '14px' }}>⚡</span>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: '#7B2FBE', margin: 0 }}>
+                    언더독 보너스 대상 — 적중 시 RP +20 추가 지급!
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -383,7 +389,6 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
       {/* ── RUN 탭 ── */}
       {mode === 'run' && (
         <>
-          {/* 경고 문구 */}
           <div style={{ background: '#FCEBEB', border: '0.5px solid #F09595', borderRadius: '10px', padding: '12px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
               <span style={{ fontSize: '16px', flexShrink: 0 }}>⚠️</span>
@@ -396,7 +401,6 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
             </div>
           </div>
 
-          {/* 보유 현황 */}
           <div style={{ background: '#F8F9FA', borderRadius: '10px', padding: '12px 14px', marginBottom: '14px' }}>
             {tickets.map(t => {
               const opt = sorted.find(o => o.id === t.option_id)
@@ -426,7 +430,6 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
             </div>
           </div>
 
-          {/* 환급 계산 */}
           <div style={{ border: '0.5px solid #E5E7EB', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '0.5px solid #E5E7EB', marginBottom: '8px' }}>
               <span style={{ fontSize: '13px', color: Colors.textSecondary }}>돌려받는 포인트</span>
@@ -440,7 +443,6 @@ export default function TradePanel({ issueId, issueType, lmsrB, options: initial
 
           {error && <p style={{ color: Colors.no, fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
 
-          {/* RUN 버튼 */}
           <button onClick={handleRun} disabled={loading}
             style={{ width: '100%', padding: '16px', background: '#A32D2D', color: Colors.white, border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
             {loading ? '처리 중...' : isBothSides ? '이 방에서 완전히 런하기' : '패널티 감수하고 런하기'}
