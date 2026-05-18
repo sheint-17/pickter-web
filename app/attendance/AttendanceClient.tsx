@@ -150,11 +150,7 @@ export default function AttendanceClient({
         {isPending ? '처리 중...' : done ? '오늘 출석 완료 ✓' : '출석하기 +3 RP'}
       </button>
 
-      {!done && (
-        <p style={{ textAlign: 'center', fontSize: '12px', color: Colors.textTertiary, marginTop: '12px' }}>
-          매일 자정 초기화 · 7일 연속 달성 시 +10 RP 추가 지급
-        </p>
-      )}
+
 
       {/* 출석 보상 안내 */}
       <div style={{
