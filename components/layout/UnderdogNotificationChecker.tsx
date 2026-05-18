@@ -48,34 +48,43 @@ export function UnderdogNotificationChecker() {
     if (!notifications || notifications.length === 0) return
     const notif = notifications[0]
 
+    // 핵심 조건: 본인이 실제로 언더독을 달성한 정산 데이터가 있어야 함
+    const { data: settlement } = await supabase
+      .from('settlements')
+      .select('option_id')
+      .eq('user_id', user.id)
+      .eq('issue_id', notif.reference_id)
+      .eq('is_correct', true)
+      .eq('is_underdog', true)
+      .single()
+
+    // 달성자가 아니면 알림만 읽음 처리하고 팝업 미표시
+    if (!settlement) {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notif.id)
+      return
+    }
+
     const [
       { data: profile },
       { data: issue },
-      { data: settlement },
     ] = await Promise.all([
       supabase.from('users').select('nickname').eq('id', user.id).single(),
       supabase.from('issues').select('title, category').eq('id', notif.reference_id).single(),
-      supabase.from('settlements')
-        .select('option_id')
-        .eq('user_id', user.id)
-        .eq('issue_id', notif.reference_id)
-        .eq('is_correct', true)
-        .eq('is_underdog', true)
-        .single(),
     ])
 
     // 매수 시 확률: tickets avg_price 기준
     let percent = 0
-    if (settlement?.option_id) {
-      const { data: ticket } = await supabase
-        .from('tickets')
-        .select('avg_price')
-        .eq('user_id', user.id)
-        .eq('issue_id', notif.reference_id)
-        .eq('option_id', settlement.option_id)
-        .single()
-      percent = ticket ? Math.round(Number(ticket.avg_price) * 100) : 0
-    }
+    const { data: ticket } = await supabase
+      .from('tickets')
+      .select('avg_price')
+      .eq('user_id', user.id)
+      .eq('issue_id', notif.reference_id)
+      .eq('option_id', settlement.option_id)
+      .single()
+    percent = ticket ? Math.round(Number(ticket.avg_price) * 100) : 0
 
     setModal({
       notificationId: notif.id,
