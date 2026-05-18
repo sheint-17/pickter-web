@@ -277,6 +277,15 @@ export default function CategoryBar() {
                 <Settings size={14} strokeWidth={2} />
               </Link>
             )}
+            {/* 모바일 로그아웃 */}
+            {isLoggedIn && (
+              <button
+                onClick={handleLogout}
+                style={{ ...menuPillStyle, color: '#EF4444', borderColor: '#FECACA', padding: '6px 10px' }}
+              >
+                <LogOut size={14} strokeWidth={2} />
+              </button>
+            )}
           </div>
         )}
       </div>
